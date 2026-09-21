@@ -10,14 +10,15 @@ const UpdateStageSchema = z.object({
 
 export async function POST(
   request: Request,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
+  const { sessionId } = await params
   try {
     const body = await request.json()
     const { action } = UpdateStageSchema.parse(body)
     
     const session = await prisma.exerciseSession.findUnique({
-      where: { id: params.sessionId }
+      where: { id: sessionId }
     })
     
     if (!session) {
@@ -33,7 +34,7 @@ export async function POST(
       }
       
       const updatedSession = await prisma.exerciseSession.update({
-        where: { id: params.sessionId },
+        where: { id: sessionId },
         data: {
           stage: nextStage,
           status: isStageComplete(nextStage) ? 'completed' : 'in_progress',

@@ -11,15 +11,16 @@ const MessageSchema = z.object({
 
 export async function POST(
   request: Request,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
+  const { sessionId } = await params
   try {
     const body = await request.json()
     const { content, role } = MessageSchema.parse(body)
     
     // Get session with messages
     const session = await prisma.exerciseSession.findUnique({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       include: {
         messages: {
           orderBy: { createdAt: 'asc' }
@@ -34,7 +35,7 @@ export async function POST(
     // Save user message
     const userMessage = await prisma.message.create({
       data: {
-        sessionId: params.sessionId,
+        sessionId: sessionId,
         role,
         content
       }
@@ -42,7 +43,7 @@ export async function POST(
     
     // Update last activity
     await prisma.exerciseSession.update({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       data: { lastActivity: new Date() }
     })
     
@@ -63,7 +64,7 @@ export async function POST(
       // Save interviewer message
       const assistantMessage = await prisma.message.create({
         data: {
-          sessionId: params.sessionId,
+          sessionId: sessionId,
           role: 'assistant',
           content: interviewerResponse.message,
           metadata: JSON.stringify({

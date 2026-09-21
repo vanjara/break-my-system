@@ -3,11 +3,12 @@ import { prisma } from '@/lib/db'
 
 export async function GET(
   request: Request,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
+  const { sessionId } = await params
   try {
     const session = await prisma.exerciseSession.findUnique({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       include: {
         exercise: true,
         messages: {

@@ -32,7 +32,7 @@ interface Session {
 export default function WorkspacePage() {
   const params = useParams()
   const router = useRouter()
-  const sessionId = params.sessionId as string
+  const sessionId = params?.sessionId as string
   
   const [session, setSession] = useState<Session | null>(null)
   const [input, setInput] = useState('')

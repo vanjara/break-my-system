@@ -24,18 +24,19 @@ const UpdateDiagramSchema = z.object({
 
 export async function POST(
   request: Request,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
+  const { sessionId } = await params
   try {
     const body = await request.json()
     const { nodes, edges } = UpdateDiagramSchema.parse(body)
     
     // Delete existing diagram elements
     await prisma.diagramEdge.deleteMany({
-      where: { sessionId: params.sessionId }
+      where: { sessionId: sessionId }
     })
     await prisma.diagramNode.deleteMany({
-      where: { sessionId: params.sessionId }
+      where: { sessionId: sessionId }
     })
     
     // Create new nodes
@@ -44,7 +45,7 @@ export async function POST(
         prisma.diagramNode.create({
           data: {
             id: node.id,
-            sessionId: params.sessionId,
+            sessionId: sessionId,
             nodeType: node.nodeType,
             label: node.label,
             x: node.x,
@@ -60,7 +61,7 @@ export async function POST(
         prisma.diagramEdge.create({
           data: {
             id: edge.id,
-            sessionId: params.sessionId,
+            sessionId: sessionId,
             fromId: edge.fromId,
             toId: edge.toId,
             label: edge.label || ''
@@ -71,7 +72,7 @@ export async function POST(
     
     // Update last activity
     await prisma.exerciseSession.update({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       data: { lastActivity: new Date() }
     })
     

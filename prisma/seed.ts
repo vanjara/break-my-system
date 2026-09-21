@@ -19,6 +19,9 @@ async function main() {
   console.log('✓ Created guest user:', user.email)
   
   // Create exercises
+  console.log('Number of exercises:', exercises?.length)
+  console.log('Exercises:', exercises?.map(e => e?.id))
+  
   for (const exercise of exercises) {
     await prisma.exercise.upsert({
       where: { id: exercise.id },

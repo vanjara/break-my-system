@@ -38,6 +38,7 @@ export default function WorkspacePage() {
   const [session, setSession] = useState<Session | null>(null)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
   const [nodes, setNodes] = useState<DiagramNode[]>([])
   const [edges, setEdges] = useState<DiagramEdge[]>([])
   const [savingDiagram, setSavingDiagram] = useState(false)
@@ -71,21 +72,58 @@ export default function WorkspacePage() {
   async function sendMessage() {
     if (!input.trim() || sending) return
     
+    const userMessage = input.trim()
     setSending(true)
+    setSendError(null)
+    
+    // Optimistic UI: append user message immediately
+    if (session) {
+      const optimisticMessage: Message = {
+        id: `temp-${Date.now()}`,
+        role: 'user',
+        content: userMessage
+      }
+      setSession({
+        ...session,
+        messages: [...session.messages, optimisticMessage]
+      })
+    }
+    
+    setInput('')
+    
     try {
-      await fetch(`/api/sessions/${sessionId}/messages`, {
+      const res = await fetch(`/api/sessions/${sessionId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: input,
+          content: userMessage,
           role: 'user'
         })
       })
       
-      setInput('')
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unknown error')
+        throw new Error(`Server responded with ${res.status}: ${errorText}`)
+      }
+      
+      // Reload to get interviewer response
       await loadSession()
     } catch (error) {
       console.error('Failed to send message:', error)
+      setSendError(
+        error instanceof Error 
+          ? `Failed to send: ${error.message}` 
+          : 'Failed to send message. Check your connection and try again.'
+      )
+      // Restore input on error
+      setInput(userMessage)
+      // Remove optimistic message on error
+      if (session) {
+        setSession({
+          ...session,
+          messages: session.messages.filter(m => !m.id.startsWith('temp-'))
+        })
+      }
     } finally {
       setSending(false)
     }
@@ -314,20 +352,33 @@ export default function WorkspacePage() {
           )}
           
           {/* Input */}
-          <div className="border-t border-gray-200 p-4">
+          <div className="border-t border-gray-200 p-4 pb-safe">
+            {sendError && (
+              <div className="mb-3 px-4 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+                {sendError}
+              </div>
+            )}
             <div className="flex gap-2">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    sendMessage()
+                  }
+                }}
                 placeholder="Type your response..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-accent"
+                disabled={sending}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-accent disabled:bg-gray-100"
               />
               <button
+                type="button"
                 onClick={sendMessage}
                 disabled={sending || !input.trim()}
-                className="px-4 py-2 bg-accent text-white rounded hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-3 bg-accent text-white rounded hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed min-w-[56px] flex items-center justify-center touch-manipulation"
+                aria-label="Send message"
               >
                 <Send className="w-5 h-5" />
               </button>

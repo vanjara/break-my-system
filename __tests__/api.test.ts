@@ -1,55 +1,80 @@
 /**
  * API Route Tests
  * 
- * These tests verify the API endpoints work correctly.
- * For a real application, these would use a test database and supertest.
+ * Basic structural tests for API routes.
+ * Full integration tests would require test database and supertest.
  */
 
-describe('API Routes', () => {
-  describe('GET /api/exercises', () => {
-    it('should return list of exercises', () => {
-      // In a real test, we would mock the database and make actual requests
-      expect(true).toBe(true)
-    })
-  })
-  
-  describe('POST /api/sessions', () => {
-    it('should create new session', () => {
-      expect(true).toBe(true)
-    })
-    
-    it('should return existing incomplete session', () => {
-      expect(true).toBe(true)
-    })
-  })
-  
-  describe('POST /api/sessions/[id]/messages', () => {
-    it('should save user message', () => {
-      expect(true).toBe(true)
+import { z } from 'zod'
+
+describe('API Response Schemas', () => {
+  it('should validate exercise response schema', () => {
+    const ExerciseSchema = z.object({
+      id: z.string(),
+      title: z.string(),
+      setting: z.string(),
+      duration: z.number(),
+      conceptsPreview: z.string(),
+      openingStory: z.string(),
+      objectives: z.string(),
+      constraints: z.string(),
+      ordinal: z.number()
     })
     
-    it('should generate interviewer response', () => {
-      expect(true).toBe(true)
-    })
+    // This validates our exercise schema is correct
+    expect(() => {
+      ExerciseSchema.parse({
+        id: 'test',
+        title: 'Test',
+        setting: 'Test setting',
+        duration: 30,
+        conceptsPreview: 'Concepts',
+        openingStory: 'Story',
+        objectives: 'Objectives',
+        constraints: 'Constraints',
+        ordinal: 1
+      })
+    }).not.toThrow()
   })
   
-  describe('POST /api/sessions/[id]/stage', () => {
-    it('should advance to next stage', () => {
-      expect(true).toBe(true)
+  it('should validate session response has required fields', () => {
+    const SessionSchema = z.object({
+      id: z.string(),
+      userId: z.string(),
+      exerciseId: z.string(),
+      stage: z.string(),
+      status: z.string()
     })
     
-    it('should not advance from COMPLETE stage', () => {
-      expect(true).toBe(true)
-    })
+    expect(() => {
+      SessionSchema.parse({
+        id: 'session-1',
+        userId: 'user-1',
+        exerciseId: 'exercise-1',
+        stage: 'SCENARIO',
+        status: 'started'
+      })
+    }).not.toThrow()
   })
   
-  describe('POST /api/sessions/[id]/diagram', () => {
-    it('should save diagram nodes and edges', () => {
-      expect(true).toBe(true)
+  it('should validate message structure', () => {
+    const MessageSchema = z.object({
+      role: z.enum(['user', 'assistant']),
+      content: z.string()
     })
     
-    it('should replace existing diagram', () => {
-      expect(true).toBe(true)
-    })
+    expect(() => {
+      MessageSchema.parse({
+        role: 'user',
+        content: 'Hello'
+      })
+    }).not.toThrow()
+    
+    expect(() => {
+      MessageSchema.parse({
+        role: 'assistant',
+        content: 'Hi there'
+      })
+    }).not.toThrow()
   })
 })

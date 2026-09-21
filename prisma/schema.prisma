@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions        ExerciseSession[]
+  progressRecords ProgressRecord[]
+}
+
+model Exercise {
+  id                  String   @id
+  title               String
+  setting             String
+  duration            Int
+  conceptsPreview     String
+  openingStory        String
+  objectives          String
+  constraints         String
+  ordinal             Int
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  sessions ExerciseSession[]
+
+  @@unique([ordinal])
+}
+
+model ExerciseSession {
+  id          String   @id @default(cuid())
+  userId      String
+  exerciseId  String
+  stage       String
+  status      String
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  lastActivity DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise          @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  messages Message[]
+  diagrams DiagramNode[]
+  edges    DiagramEdge[]
+  debrief  Debrief?
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String
+  content   String
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  session ExerciseSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+model DiagramNode {
+  id        String   @id @default(cuid())
+  sessionId String
+  nodeType  String
+  label     String
+  x         Float
+  y         Float
+  metadata  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session     ExerciseSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  edgesFrom   DiagramEdge[]   @relation("EdgeFrom")
+  edgesTo     DiagramEdge[]   @relation("EdgeTo")
+
+  @@index([sessionId])
+}
+
+model DiagramEdge {
+  id        String   @id @default(cuid())
+  sessionId String
+  fromId    String
+  toId      String
+  label     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session ExerciseSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  from    DiagramNode     @relation("EdgeFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to      DiagramNode     @relation("EdgeTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+model Debrief {
+  id                String   @id @default(cuid())
+  sessionId         String   @unique
+  clarifyScore      Int
+  clarifyFeedback   String
+  bottleneckScore   Int
+  bottleneckFeedback String
+  adaptScore        Int
+  adaptFeedback     String
+  tradeoffsScore    Int
+  tradeoffsFeedback String
+  softwareScore     Int
+  softwareFeedback  String
+  overallFeedback   String
+  mentalModels      String
+  designChanges     String
+  transferQuestion  String
+  createdAt         DateTime @default(now())
+
+  session ExerciseSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model ProgressRecord {
+  id              String   @id @default(cuid())
+  userId          String
+  exerciseId      String
+  completed       Boolean  @default(false)
+  bestClarify     Int?
+  bestBottleneck  Int?
+  bestAdapt       Int?
+  bestTradeoffs   Int?
+  bestSoftware    Int?
+  attempts        Int      @default(0)
+  lastAttemptAt   DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exerciseId])
+}

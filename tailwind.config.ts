@@ -14,6 +14,9 @@ const config: Config = {
         accent: "#FF6B4A",
         secondary: "#1E3A8A",
       },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
     },
   },
   plugins: [],

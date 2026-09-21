@@ -140,6 +140,22 @@ export default function HomePage() {
               const hasInProgressSession = sessions.some(
                 s => s.exerciseId === exercise.id && s.status !== 'completed'
               )
+              const hasCompletedSession = sessions.some(
+                s => s.exerciseId === exercise.id && s.status === 'completed'
+              )
+              
+              // Determine button text and style
+              let buttonText = 'Start'
+              let buttonClass = 'w-full bg-accent hover:bg-accent/90 text-white font-medium py-2 px-4 rounded transition-colors'
+              
+              if (hasInProgressSession) {
+                buttonText = 'Continue'
+              } else if (exerciseProgress?.completed || hasCompletedSession) {
+                buttonText = 'Review'
+                buttonClass = 'w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition-colors'
+              } else if (exerciseProgress && exerciseProgress.attempts > 0) {
+                buttonText = 'Try Again'
+              }
               
               return (
                 <div
@@ -151,14 +167,14 @@ export default function HomePage() {
                       <h3 className="text-lg font-semibold text-foreground">
                         {exercise.title}
                       </h3>
-                      {exerciseProgress?.completed && (
-                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                          Completed
+                      {(exerciseProgress?.completed || hasCompletedSession) && (
+                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-medium">
+                          ✓ Completed
                         </span>
                       )}
-                      {hasInProgressSession && !exerciseProgress?.completed && (
-                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                          In Progress
+                      {hasInProgressSession && !(exerciseProgress?.completed || hasCompletedSession) && (
+                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-medium">
+                          → In Progress
                         </span>
                       )}
                     </div>
@@ -174,9 +190,9 @@ export default function HomePage() {
                     
                     <button
                       onClick={() => startExercise(exercise.id)}
-                      className="w-full bg-accent hover:bg-accent/90 text-white font-medium py-2 px-4 rounded transition-colors"
+                      className={buttonClass}
                     >
-                      {hasInProgressSession ? 'Continue' : exerciseProgress ? 'Try Again' : 'Start'}
+                      {buttonText}
                     </button>
                   </div>
                 </div>

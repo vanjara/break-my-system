@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Link, Move } from 'lucide-react'
 
 export interface DiagramNode {
   id: string
@@ -40,15 +40,35 @@ export default function DiagramEditor({ nodes, edges, onChange }: Props) {
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const [draggingNode, setDraggingNode] = useState<string | null>(null)
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null)
+  const [connectMode, setConnectMode] = useState(false)
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [canvasBounds, setCanvasBounds] = useState({ width: 800, height: 600 })
+  
+  useEffect(() => {
+    const updateBounds = () => {
+      if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect()
+        setCanvasBounds({ width: rect.width, height: rect.height })
+      }
+    }
+    updateBounds()
+    window.addEventListener('resize', updateBounds)
+    return () => window.removeEventListener('resize', updateBounds)
+  }, [])
   
   function addNode(nodeType: string) {
+    const NODE_WIDTH = 128
+    const NODE_HEIGHT = 80
+    const maxX = canvasBounds.width - NODE_WIDTH - 20
+    const maxY = canvasBounds.height - NODE_HEIGHT - 20
+    
     const newNode: DiagramNode = {
       id: `node-${Date.now()}`,
       nodeType,
       label: NODE_TYPES.find(t => t.value === nodeType)?.label || nodeType,
-      x: Math.random() * 300 + 50,
-      y: Math.random() * 200 + 50
+      x: Math.min(Math.random() * 300 + 50, maxX),
+      y: Math.min(Math.random() * 200 + 50, maxY)
     }
     onChange([...nodes, newNode], edges)
   }
@@ -72,38 +92,61 @@ export default function DiagramEditor({ nodes, edges, onChange }: Props) {
   }
   
   function handleMouseMove(e: React.MouseEvent) {
-    if (!draggingNode || !canvasRef.current) return
+    if (!canvasRef.current) return
     
     const rect = canvasRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left - dragOffset.x
-    const y = e.clientY - rect.top - dragOffset.y
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
+    setMousePos({ x: mouseX, y: mouseY })
     
-    const newNodes = nodes.map(n =>
-      n.id === draggingNode ? { ...n, x, y } : n
-    )
-    onChange(newNodes, edges)
+    if (draggingNode) {
+      const NODE_WIDTH = 128
+      const NODE_HEIGHT = 80
+      let x = mouseX - dragOffset.x
+      let y = mouseY - dragOffset.y
+      
+      // Constrain to canvas bounds
+      x = Math.max(0, Math.min(x, canvasBounds.width - NODE_WIDTH))
+      y = Math.max(0, Math.min(y, canvasBounds.height - NODE_HEIGHT))
+      
+      const newNodes = nodes.map(n =>
+        n.id === draggingNode ? { ...n, x, y } : n
+      )
+      onChange(newNodes, edges)
+    }
   }
   
   function handleMouseUp() {
     setDraggingNode(null)
   }
   
-  function startConnection(nodeId: string) {
-    if (connectingFrom === nodeId) {
-      setConnectingFrom(null)
-    } else if (connectingFrom) {
-      // Complete connection
-      const newEdge: DiagramEdge = {
-        id: `edge-${Date.now()}`,
-        fromId: connectingFrom,
-        toId: nodeId,
-        label: ''
+  function handleNodeClick(nodeId: string) {
+    if (connectMode) {
+      // In connect mode, clicking nodes creates edges
+      if (connectingFrom === nodeId) {
+        setConnectingFrom(null)
+      } else if (connectingFrom) {
+        // Complete connection
+        const newEdge: DiagramEdge = {
+          id: `edge-${Date.now()}`,
+          fromId: connectingFrom,
+          toId: nodeId,
+          label: ''
+        }
+        onChange(nodes, [...edges, newEdge])
+        setConnectingFrom(null)
+      } else {
+        setConnectingFrom(nodeId)
       }
-      onChange(nodes, [...edges, newEdge])
-      setConnectingFrom(null)
     } else {
-      setConnectingFrom(nodeId)
+      // In move mode, clicking selects
+      setSelectedNode(nodeId)
     }
+  }
+  
+  function toggleConnectMode() {
+    setConnectMode(!connectMode)
+    setConnectingFrom(null)
   }
   
   function deleteEdge(edgeId: string) {
@@ -115,23 +158,47 @@ export default function DiagramEditor({ nodes, edges, onChange }: Props) {
     <div className="h-full flex flex-col">
       {/* Toolbar */}
       <div className="bg-gray-50 border-b border-gray-200 p-3">
-        <div className="flex flex-wrap gap-2 mb-3">
-          {NODE_TYPES.map(type => (
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex gap-2">
             <button
-              key={type.value}
-              onClick={() => addNode(type.value)}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50"
-              style={{ borderLeftColor: type.color, borderLeftWidth: '3px' }}
+              onClick={toggleConnectMode}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded font-medium transition-colors ${
+                connectMode
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-white border border-gray-300 hover:bg-gray-50'
+              }`}
+              title={connectMode ? 'Switch to Move mode' : 'Switch to Connect mode'}
             >
-              <Plus className="w-3 h-3" />
-              {type.label}
+              {connectMode ? <Link className="w-4 h-4" /> : <Move className="w-4 h-4" />}
+              {connectMode ? 'Connect Mode' : 'Move Mode'}
             </button>
-          ))}
+          </div>
+          <div className="h-6 w-px bg-gray-300" />
+          <div className="flex flex-wrap gap-2">
+            {NODE_TYPES.map(type => (
+              <button
+                key={type.value}
+                onClick={() => addNode(type.value)}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50"
+                style={{ borderLeftColor: type.color, borderLeftWidth: '3px' }}
+                title={`Add ${type.label} component`}
+              >
+                <Plus className="w-3 h-3" />
+                {type.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="text-xs text-gray-600">
-          {connectingFrom
-            ? 'Click another node to connect'
-            : 'Click nodes to connect them, drag to move'}
+          {connectMode ? (
+            connectingFrom ? (
+              <span className="font-medium text-blue-600">Click another node to create a connection →</span>
+            ) : (
+              <span>Click a node to start connecting, then click another node to finish</span>
+            )
+          ) : (
+            <span>Drag nodes to reposition them • Click the Connect Mode button to create edges</span>
+          )}
         </div>
       </div>
       
@@ -144,6 +211,25 @@ export default function DiagramEditor({ nodes, edges, onChange }: Props) {
         onMouseLeave={handleMouseUp}
       >
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
+          {/* Connection preview line */}
+          {connectingFrom && connectMode && (() => {
+            const fromNode = nodes.find(n => n.id === connectingFrom)
+            if (!fromNode) return null
+            return (
+              <line
+                x1={fromNode.x + 64}
+                y1={fromNode.y + 40}
+                x2={mousePos.x}
+                y2={mousePos.y}
+                stroke="#3B82F6"
+                strokeWidth="2"
+                strokeDasharray="5,5"
+                opacity="0.6"
+              />
+            )
+          })()}
+          
+          {/* Existing edges */}
           {edges.map(edge => {
             const fromNode = nodes.find(n => n.id === edge.fromId)
             const toNode = nodes.find(n => n.id === edge.toId)
@@ -151,25 +237,35 @@ export default function DiagramEditor({ nodes, edges, onChange }: Props) {
             
             return (
               <g key={edge.id}>
+                <title>Click to delete edge</title>
                 <line
-                  x1={fromNode.x + 60}
-                  y1={fromNode.y + 30}
-                  x2={toNode.x + 60}
-                  y2={toNode.y + 30}
+                  x1={fromNode.x + 64}
+                  y1={fromNode.y + 40}
+                  x2={toNode.x + 64}
+                  y2={toNode.y + 40}
                   stroke="#94A3B8"
                   strokeWidth="2"
                   markerEnd="url(#arrowhead)"
                 />
                 <circle
-                  cx={(fromNode.x + toNode.x) / 2 + 60}
-                  cy={(fromNode.y + toNode.y) / 2 + 30}
-                  r="8"
+                  cx={(fromNode.x + toNode.x) / 2 + 64}
+                  cy={(fromNode.y + toNode.y) / 2 + 40}
+                  r="12"
                   fill="white"
-                  stroke="#94A3B8"
+                  stroke="#EF4444"
                   strokeWidth="2"
-                  className="pointer-events-auto cursor-pointer"
+                  className="pointer-events-auto cursor-pointer hover:fill-red-50"
                   onClick={() => deleteEdge(edge.id)}
                 />
+                <text
+                  x={(fromNode.x + toNode.x) / 2 + 64}
+                  y={(fromNode.y + toNode.y) / 2 + 40}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="pointer-events-none text-xs fill-red-500 font-bold"
+                >
+                  ×
+                </text>
               </g>
             )
           })}
@@ -192,9 +288,11 @@ export default function DiagramEditor({ nodes, edges, onChange }: Props) {
           return (
             <div
               key={node.id}
-              className={`absolute w-32 p-3 rounded-lg border-2 cursor-move transition-shadow ${
-                selectedNode === node.id ? 'ring-2 ring-accent shadow-lg' : 'shadow-sm'
-              } ${connectingFrom === node.id ? 'ring-2 ring-blue-500' : ''}`}
+              className={`absolute w-32 p-3 rounded-lg border-2 transition-all ${
+                connectMode ? 'cursor-pointer' : 'cursor-move'
+              } ${
+                selectedNode === node.id ? 'ring-2 ring-purple-500 shadow-lg' : 'shadow-sm hover:shadow-md'
+              } ${connectingFrom === node.id ? 'ring-2 ring-blue-500 animate-pulse' : ''}`}
               style={{
                 left: node.x,
                 top: node.y,
@@ -203,29 +301,32 @@ export default function DiagramEditor({ nodes, edges, onChange }: Props) {
               }}
               onMouseDown={(e) => {
                 e.stopPropagation()
-                startDrag(node.id, e)
-                setSelectedNode(node.id)
+                if (!connectMode) {
+                  startDrag(node.id, e)
+                }
               }}
               onClick={(e) => {
                 e.stopPropagation()
-                if (e.shiftKey) {
-                  startConnection(node.id)
-                }
+                handleNodeClick(node.id)
               }}
+              title={connectMode ? 'Click to connect' : 'Drag to move'}
             >
               <div className="text-xs font-semibold mb-1" style={{ color: nodeType?.color }}>
                 {node.nodeType}
               </div>
-              <div className="text-sm">{node.label}</div>
-              <button
-                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  deleteNode(node.id)
-                }}
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
+              <div className="text-sm truncate">{node.label}</div>
+              {!connectMode && (
+                <button
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow-md"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    deleteNode(node.id)
+                  }}
+                  title="Delete node"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
             </div>
           )
         })}

@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Send, Lightbulb, ArrowRight, Menu, X } from 'lucide-react'
+import { ArrowLeft, Send, Lightbulb, ArrowRight, Menu, X, TrendingUp } from 'lucide-react'
 import DiagramEditor, { DiagramNode, DiagramEdge } from '@/components/DiagramEditor'
+import RetryWaveViz from '@/components/RetryWaveViz'
 import { getExerciseById } from '@/lib/exercises'
 import { getStageDescription, getNextStage } from '@/lib/state-machine'
 
@@ -43,6 +44,7 @@ export default function WorkspacePage() {
   const [activeTab, setActiveTab] = useState<'scenario' | 'conversation' | 'diagram'>('scenario')
   const [showHints, setShowHints] = useState(false)
   const [currentHintLevel, setCurrentHintLevel] = useState(1)
+  const [showRetryViz, setShowRetryViz] = useState(true)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
@@ -134,6 +136,8 @@ export default function WorkspacePage() {
   
   const exercise = getExerciseById(session.exerciseId)
   const canAdvance = getNextStage(session.stage as any) !== null
+  const isRetryArmy = session.exerciseId === 'retry-army'
+  const showRetryStorm = isRetryArmy && (session.stage === 'FAILURE_INJECTION' || session.stage === 'ADAPTATION')
   
   return (
     <div className="h-screen flex flex-col">
@@ -203,6 +207,32 @@ export default function WorkspacePage() {
               {session.exercise.openingStory}
             </p>
           </div>
+          
+          {/* Retry Wave Visualization - prominent for Retry Army during failure stages */}
+          {showRetryStorm && (
+            <div className="mt-6 border-2 border-red-400 rounded-lg bg-red-50 p-4 animate-pulse-slow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-red-600" />
+                  <h3 className="font-semibold text-sm text-red-900">Retry Storm Visualization</h3>
+                </div>
+                <button
+                  onClick={() => setShowRetryViz(!showRetryViz)}
+                  className="text-xs text-red-700 hover:text-red-900 font-medium"
+                >
+                  {showRetryViz ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              {showRetryViz && (
+                <div className="bg-white rounded p-2 border border-red-200">
+                  <RetryWaveViz />
+                </div>
+              )}
+              <p className="text-xs text-red-800 mt-2">
+                ⚠️ This visualization shows how retry attempts can create cascading waves of traffic. Watch how each failed request spawns retries!
+              </p>
+            </div>
+          )}
           
           {exercise && (
             <div className="mt-6">

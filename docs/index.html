@@ -179,7 +179,19 @@ function render() {
   else if (config.demand===maxThroughput) $("explanation").textContent="Incoming demand equals the shop's theoretical maximum of "+maxThroughput+"/min. There is no spare capacity for surges.";
   else $("explanation").textContent="Incoming demand is "+config.demand+"/min and maximum capacity is "+maxThroughput+"/min. The shop can keep up; existing backlogs may still take time to clear.";
 }
-$("start").onclick=()=>{phase=1;running=true;showPhase();render()};
+$("start").onclick=()=>{
+  phase=1;
+  running=true;
+  // Start with one real order, then resume the normal arrival schedule.
+  state.waiting.push({arrived:state.seconds});
+  state.received++;
+  state.lastArrivedAt=state.seconds;
+  state.credit=0;
+  // Put the first order to work immediately if a cook is available.
+  state.cooking.push({...state.waiting.shift(),remaining:10});
+  showPhase();
+  render();
+};
 $("surge").onclick=()=>{config.demand=10;phase=2;showPhase();render()};
 function changeDemand(amount){
   if(phase<2)return;

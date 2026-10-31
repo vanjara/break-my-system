@@ -11,12 +11,12 @@ header small{font-weight:800;letter-spacing:.12em;color:#667085}h1{margin:8px 0;
 p{line-height:1.55}.card{background:white;border:1px solid #dce2eb;border-radius:16px;padding:22px;margin:18px 0}
 .story{background:#fff8e8;border-color:#f0d7a5}button{border:1px solid #98a2b3;background:white;border-radius:9px;padding:11px 15px;font:inherit;cursor:pointer;margin:4px 6px 4px 0}
 button.primary{background:#164e63;color:white;border-color:#164e63}button:disabled{opacity:.45;cursor:not-allowed}
-.actions{display:flex;flex-wrap:wrap;gap:5px}.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:18px}
+.actions{display:flex;flex-wrap:wrap;gap:5px}.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:18px}
 .station{background:#f8fafc;border:2px solid #e1e7ef;border-radius:12px;padding:16px 8px;text-align:center;min-height:150px}
-.station strong{display:block;font-size:1.7rem;margin:12px 0}.station small{color:#667085}.station.busy{border-color:#d97706;background:#fff3db}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stat{padding:12px;background:#f2f5f9;border-radius:10px}
+.station strong{display:block;font-size:1.7rem;margin:8px 0}.station .icon{display:block;font-size:1.8rem;margin-bottom:9px}.station .dots{height:9px;margin-top:12px;display:flex;justify-content:center;gap:5px}.dot{height:8px;width:8px;border-radius:50%;background:#6c92e6;animation:pulse 1.5s ease-in-out infinite}.dot:nth-child(even){animation-delay:.5s}@keyframes pulse{50%{opacity:.25;transform:scale(.65)}}.station small{color:#667085}.station.busy{border-color:#d97706;background:#fff3db}
+.capacity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.capacity-item{background:#f2f5fb;padding:16px;border-radius:12px}.capacity-item strong{display:block;font-size:1.5rem;margin:7px 0}.meter{height:10px;border-radius:9px;background:#dbe4f0;overflow:hidden;margin-top:10px}.meter span{display:block;height:100%;background:#3267ce;transition:width .2s}.capacity-note{margin-top:15px;padding:14px;background:#f7f9fd;border-left:4px solid #3267ce;border-radius:6px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stat{padding:12px;background:#f2f5f9;border-radius:10px}
 .stat strong{display:block;font-size:1.35rem}.hint{color:#475467;font-size:.93rem}.hidden{display:none}
-@media(max-width:700px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:1fr 1fr}h1{font-size:1.9rem}}
+@media(max-width:700px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:1fr 1fr}.capacity-grid{grid-template-columns:1fr}.station{min-height:145px}h1{font-size:1.9rem}}
 </style>
 </head>
 <body>
@@ -36,7 +36,8 @@ button.primary{background:#164e63;color:white;border-color:#164e63}button:disabl
 <section class="card"><div class="actions"><button id="switch">Switch to software view</button></div>
 <h2 id="viewTitle">Inside your restaurant</h2>
 <p class="hint" id="flowHint">Each number is an order count. Orders flow left to right; queues grow when a stage cannot keep up.</p>
-<div class="flow" id="flow" aria-live="polite"></div></section>
+<div class="flow" id="flow" aria-live="off"></div></section>
+<section class="card"><h2>Capacity &amp; bottlenecks</h2><p class="hint">One cook prepares 6 pizzas/min; one oven bakes 4 pizzas/min. The slower stage limits the whole shop.</p><div class="capacity-grid"><div class="capacity-item">Cooking capacity<strong id="cookCapacity">6/min</strong><span id="cookUtil">50% of capacity needed</span><div class="meter"><span id="cookMeter"></span></div></div><div class="capacity-item">Baking capacity<strong id="ovenCapacity">4/min</strong><span id="ovenUtil">75% of capacity needed</span><div class="meter"><span id="ovenMeter"></span></div></div><div class="capacity-item">Maximum shop throughput<strong id="shopCapacity">4/min</strong><span id="headroom">1/min spare capacity</span></div></div><p class="capacity-note" id="capacityExplanation" aria-live="polite"></p></section>
 <section class="card"><h2>What is happening?</h2><p id="explanation">Press Start restaurant to begin.</p>
 <div class="stats"><div class="stat">Demand <strong id="demand">3/min</strong></div>
 <div class="stat">Pizzas served <strong id="served">0</strong></div>
@@ -100,19 +101,46 @@ function showPhase() {
 }
 function render() {
   $("viewTitle").textContent=softwareView?"The same system as software":"Inside your restaurant";
-  const names=softwareView?["Requests","Request queue","App workers","Database queue","Database"]:["Customers","Order queue","Cooks preparing","Waiting for oven","Ovens baking"];
-  const counts=[Math.round(config.demand)+"/min",state.waiting.length,state.cooking.length,state.prepared.length,state.baking.length];
+  const names=softwareView
+    ? ["Requests","Request queue","App workers","Database queue","Database busy","Completed"]
+    : ["Customers / min","Order queue","Cooks busy","Oven queue","Ovens busy","Pizzas served"];
+  const icons=softwareView?["🌐","📋","⚙️","📥","🗄️","✅"]:["👥","📋","👨‍🍳","🧾","🔥","🍕"];
+  const counts=[config.demand+"/min",state.waiting.length,state.cooking.length,state.prepared.length,state.baking.length,state.served.length];
   const ovenLimit=config.ovens*4, cookLimit=config.cooks*6;
-  const ovenIsLimit=ovenLimit<=cookLimit && config.demand>ovenLimit;
+  const maxThroughput=Math.min(ovenLimit,cookLimit);
+  const limitingStage=cookLimit===ovenLimit?"Both stages":cookLimit<ovenLimit?"Cooking":"Baking";
+  const details=["arriving","waiting for worker",config.cooks+" total workers","waiting for resource",config.ovens+" total resources","completed"];
+  if(!softwareView){details[1]="waiting for cook";details[2]=config.cooks+" cooks available";details[3]="waiting for oven";details[4]=config.ovens+" ovens available";}
   $("flow").replaceChildren();
   names.forEach((name,i)=>{
     const box=document.createElement("div");
-    box.className="station"+((i===3&&state.prepared.length>0&&ovenIsLimit)||(i===1&&state.waiting.length>0&&cookLimit<ovenLimit)?" busy":"");
+    const queued=(i===1&&state.waiting.length>0)||(i===3&&state.prepared.length>0);
+    box.className="station"+(queued?" busy":"");
+    const icon=document.createElement("span");icon.className="icon";icon.textContent=icons[i];icon.setAttribute("aria-hidden","true");
     const label=document.createElement("div");label.textContent=name;
     const value=document.createElement("strong");value.textContent=counts[i];
-    const detail=document.createElement("small");detail.textContent=i===0?"arrival rate":i===2?config.cooks+" active capacity":i===4?config.ovens+" active capacity":"orders";
-    box.append(label,value,detail);$("flow").append(box);
+    const detail=document.createElement("small");detail.textContent=details[i];
+    box.append(icon,label,value,detail);
+    if(i===0&&running){const dots=document.createElement("div");dots.className="dots";for(let j=0;j<8;j++){const dot=document.createElement("span");dot.className="dot";dots.append(dot)}box.append(dots)}
+    $("flow").append(box);
   });
+  $("cookCapacity").textContent=cookLimit+"/min";
+  $("ovenCapacity").textContent=ovenLimit+"/min";
+  $("shopCapacity").textContent=maxThroughput+"/min";
+  // These percentages describe the load required by incoming demand, not measured worker busy time.
+  const cookingLoad=Math.round(100*config.demand/cookLimit);
+  const bakingLoad=Math.round(100*config.demand/ovenLimit);
+  $("cookUtil").textContent=cookingLoad+"% required by incoming demand";
+  $("ovenUtil").textContent=bakingLoad+"% required by incoming demand";
+  $("cookMeter").style.width=Math.min(100,cookingLoad)+"%";
+  $("ovenMeter").style.width=Math.min(100,bakingLoad)+"%";
+  $("headroom").textContent=config.demand<=maxThroughput?(maxThroughput-config.demand)+"/min spare capacity":(config.demand-maxThroughput)+"/min above capacity";
+  let lesson="Bottleneck: "+limitingStage+". Cooking can handle "+cookLimit+"/min and baking "+ovenLimit+"/min, so the shop can complete at most "+maxThroughput+"/min. ";
+  lesson+=config.demand>maxThroughput?"Demand exceeds capacity; the backlog will grow over time. ":"Current capacity is enough for incoming demand; earlier backlogs can still take time to clear. ";
+  if(cookLimit<ovenLimit)lesson+="Adding ovens alone will not increase maximum throughput.";
+  else if(ovenLimit<cookLimit)lesson+="Adding cooks alone will not increase maximum throughput.";
+  else lesson+="Both stages have equal capacity; adding only one resource type will not raise maximum throughput.";
+  $("capacityExplanation").textContent=lesson;
   $("demand").textContent=config.demand+"/min";$("served").textContent=state.served.length;
   $("cooks").textContent=config.cooks;$("ovens").textContent=config.ovens;
   $("elapsed").textContent=state.seconds+"s";

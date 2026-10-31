@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Break My System — Pizza Shop</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#1d2939;background:#f5f7fb}
+*{box-sizing:border-box}body{margin:0}main{max-width:1020px;margin:auto;padding:28px 18px}
+header small{font-weight:800;letter-spacing:.12em;color:#667085}h1{margin:8px 0;font-size:2.3rem}
+p{line-height:1.55}.card{background:white;border:1px solid #dce2eb;border-radius:16px;padding:22px;margin:18px 0}
+.story{background:#fff8e8;border-color:#f0d7a5}button{border:1px solid #98a2b3;background:white;border-radius:9px;padding:11px 15px;font:inherit;cursor:pointer;margin:4px 6px 4px 0}
+button.primary{background:#164e63;color:white;border-color:#164e63}button:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;flex-wrap:wrap;gap:5px}.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:18px}
+.station{background:#f8fafc;border:2px solid #e1e7ef;border-radius:12px;padding:16px 8px;text-align:center;min-height:150px}
+.station strong{display:block;font-size:1.7rem;margin:12px 0}.station small{color:#667085}.station.busy{border-color:#d97706;background:#fff3db}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stat{padding:12px;background:#f2f5f9;border-radius:10px}
+.stat strong{display:block;font-size:1.35rem}.hint{color:#475467;font-size:.93rem}.hidden{display:none}
+@media(max-width:700px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:1fr 1fr}h1{font-size:1.9rem}}
+</style>
+</head>
+<body>
+<main>
+<header><small>BREAK MY SYSTEM · EXPERIMENT 01</small><h1>🍕 Your Pizza Shop</h1>
+<p>Start with a simple restaurant. Watch what happens when demand grows. Improve the part that actually limits the system.</p></header>
+<section class="card story"><small id="stage">STEP 1 · OBSERVE</small><h2 id="title">Open your restaurant</h2>
+<p id="instruction">One cook prepares each pizza in 10 seconds. One oven bakes each pizza in 15 seconds. Start the restaurant and watch orders move.</p>
+<div class="actions">
+<button class="primary" id="start">Start restaurant</button>
+<button class="primary hidden" id="surge">Customers are arriving faster</button>
+<button id="cook" class="hidden">Hire a cook</button>
+<button id="oven" class="hidden">Add an oven</button>
+<button id="continue" class="hidden">Continue improving (keep orders)</button>
+<button id="pause" disabled>Pause</button><button id="restart">Restart experiment</button>
+</div></section>
+<section class="card"><div class="actions"><button id="switch">Switch to software view</button></div>
+<h2 id="viewTitle">Inside your restaurant</h2>
+<p class="hint" id="flowHint">Each number is an order count. Orders flow left to right; queues grow when a stage cannot keep up.</p>
+<div class="flow" id="flow" aria-live="polite"></div></section>
+<section class="card"><h2>What is happening?</h2><p id="explanation">Press Start restaurant to begin.</p>
+<div class="stats"><div class="stat">Demand <strong id="demand">3/min</strong></div>
+<div class="stat">Pizzas served <strong id="served">0</strong></div>
+<div class="stat">Average time to serve <strong id="average">—</strong></div>
+<div class="stat">Cooks <strong id="cooks">1</strong></div><div class="stat">Ovens <strong id="ovens">1</strong></div>
+<div class="stat">Elapsed <strong id="elapsed">0s</strong></div></div>
+<p class="hint">This is a simplified, deterministic model. It assumes every order takes exactly 10 seconds to prepare and 15 seconds to bake. Each oven handles one pizza at a time.</p>
+</section>
+<footer class="hint">GitHub Pages prototype · No AI, server, or database required.</footer>
+</main>
+<script>
+"use strict";
+// The restaurant is the model. Both visual views read the same numbers.
+const $ = (id) => document.getElementById(id);
+let state, config, phase, running, softwareView;
+function reset() {
+  state = {seconds:0, credit:0, waiting:[], cooking:[], prepared:[], baking:[], served:[]};
+  config = {demand:3,cooks:1,ovens:1};
+  phase = 0; running = false; softwareView = false;
+  $("switch").textContent = "Switch to software view";
+  showPhase(); render();
+}
+function advanceOneSecond() {
+  state.seconds += 1;
+  state.credit += config.demand / 60;
+  while (state.credit >= 1) {
+    state.waiting.push({arrived:state.seconds});
+    state.credit -= 1;
+  }
+  // Finish existing work, then assign the newly free resources.
+  state.baking.forEach(order => order.remaining--);
+  const finished = state.baking.filter(order => order.remaining === 0);
+  finished.forEach(order => state.served.push({time:state.seconds-order.arrived}));
+  state.baking = state.baking.filter(order => order.remaining > 0);
+  state.cooking.forEach(order => order.remaining--);
+  state.prepared.push(...state.cooking.filter(order => order.remaining === 0));
+  state.cooking = state.cooking.filter(order => order.remaining > 0);
+  while (state.baking.length < config.ovens && state.prepared.length) {
+    state.baking.push({...state.prepared.shift(),remaining:15});
+  }
+  while (state.cooking.length < config.cooks && state.waiting.length) {
+    state.cooking.push({...state.waiting.shift(),remaining:10});
+  }
+}
+function showPhase() {
+  $("start").classList.toggle("hidden",phase !== 0);
+  $("surge").classList.toggle("hidden",phase !== 1);
+  $("cook").classList.toggle("hidden",phase !== 2);
+  $("oven").classList.toggle("hidden",phase !== 2);
+  $("continue").classList.toggle("hidden",phase !== 3);
+  $("pause").disabled = phase === 0;
+  const stages = [
+    ["STEP 1 · OBSERVE","Open your restaurant","Start with one cook and one oven. Watch how an order becomes a pizza."],
+    ["STEP 2 · GROW","The restaurant is working","Orders move through the cook and oven. Now introduce more customers."],
+    ["STEP 3 · DECIDE","Orders are piling up","Demand is now 10 orders/minute. Try hiring a cook or adding an oven. Which will help more?"],
+    ["STEP 4 · LEARN","Observe your decision","Watch the waiting counts change. You can continue improving without losing orders, or restart to compare from the same baseline."]
+  ];
+  $("stage").textContent=stages[phase][0];
+  $("title").textContent=stages[phase][1];
+  $("instruction").textContent=stages[phase][2];
+}
+function render() {
+  $("viewTitle").textContent=softwareView?"The same system as software":"Inside your restaurant";
+  const names=softwareView?["Requests","Request queue","App workers","Database queue","Database"]:["Customers","Order queue","Cooks preparing","Waiting for oven","Ovens baking"];
+  const counts=[Math.round(config.demand)+"/min",state.waiting.length,state.cooking.length,state.prepared.length,state.baking.length];
+  const ovenLimit=config.ovens*4, cookLimit=config.cooks*6;
+  const ovenIsLimit=ovenLimit<=cookLimit && config.demand>ovenLimit;
+  $("flow").replaceChildren();
+  names.forEach((name,i)=>{
+    const box=document.createElement("div");
+    box.className="station"+((i===3&&state.prepared.length>0&&ovenIsLimit)||(i===1&&state.waiting.length>0&&cookLimit<ovenLimit)?" busy":"");
+    const label=document.createElement("div");label.textContent=name;
+    const value=document.createElement("strong");value.textContent=counts[i];
+    const detail=document.createElement("small");detail.textContent=i===0?"arrival rate":i===2?config.cooks+" active capacity":i===4?config.ovens+" active capacity":"orders";
+    box.append(label,value,detail);$("flow").append(box);
+  });
+  $("demand").textContent=config.demand+"/min";$("served").textContent=state.served.length;
+  $("cooks").textContent=config.cooks;$("ovens").textContent=config.ovens;
+  $("elapsed").textContent=state.seconds+"s";
+  const avg=state.served.length?Math.round(state.served.reduce((a,o)=>a+o.time,0)/state.served.length)+"s":"—";
+  $("average").textContent=avg;
+  if (phase===0) $("explanation").textContent="Start the restaurant to watch the flow.";
+  else if (phase===1) $("explanation").textContent="At 3 orders/minute, one cook (6/minute) and one oven (4/minute) can keep up.";
+  else if (ovenIsLimit) $("explanation").textContent="The oven is the bottleneck: "+ovenLimit+" pizzas/minute of baking capacity for "+config.demand+" incoming orders/minute. More cooks alone cannot increase oven capacity. Watch the queue before the oven.";
+  else if (config.demand>Math.min(ovenLimit,cookLimit)) $("explanation").textContent="The cooks are now the bottleneck. The slowest stage determines the restaurant's maximum throughput.";
+  else $("explanation").textContent="Capacity can now keep up with incoming orders. Existing backlog may still need time to clear. Adding resources also has a cost.";
+}
+$("start").onclick=()=>{phase=1;running=true;showPhase();render()};
+$("surge").onclick=()=>{config.demand=10;phase=2;showPhase();render()};
+function improve(kind){config[kind]++;phase=3;showPhase();render()}
+$("cook").onclick=()=>improve("cooks");
+$("oven").onclick=()=>improve("ovens");
+$("continue").onclick=()=>{phase=2;showPhase();render()};
+$("pause").onclick=()=>{running=!running;$("pause").textContent=running?"Pause":"Resume"};
+$("restart").onclick=()=>reset();
+$("switch").onclick=()=>{softwareView=!softwareView;$("switch").textContent=softwareView?"Switch to restaurant view":"Switch to software view";render()};
+setInterval(()=>{if(running){advanceOneSecond();render()}},1000);
+reset();
+</script>
+</body>
+</html>

@@ -30,6 +30,7 @@ button.primary{background:#315fd2;color:white;border-color:#315fd2}button:hover:
 <button class="primary hidden" id="surge">Customers are arriving faster</button>
 <button id="cook" class="hidden">Hire a cook</button>
 <button id="oven" class="hidden">Add an oven</button>
+<p id="resourceLimit" class="hint hidden" role="status"></p>
 <button id="continue" class="hidden">Continue improving (keep orders)</button>
 <button id="pause" disabled>Pause</button><button id="restart">Restart experiment</button>
 </div></section>
@@ -52,6 +53,9 @@ button.primary{background:#315fd2;color:white;border-color:#315fd2}button:hover:
 "use strict";
 // The restaurant is the model. Both visual views read the same numbers.
 const $ = (id) => document.getElementById(id);
+// Physical limits: a small shop cannot expand indefinitely.
+const MAX_COOKS = 4;
+const MAX_OVENS = 3;
 let state, config, phase, running, softwareView;
 function reset() {
   state = {seconds:0, credit:0, received:0, lastArrivedAt:null, lastServedAt:null, waiting:[], cooking:[], prepared:[], baking:[], served:[]};
@@ -92,6 +96,13 @@ function showPhase() {
   $("oven").classList.toggle("hidden",phase !== 2);
   $("continue").classList.toggle("hidden",phase !== 3);
   $("pause").disabled = phase === 0;
+  $("cook").disabled = config.cooks >= MAX_COOKS;
+  $("oven").disabled = config.ovens >= MAX_OVENS;
+  $("cook").textContent = config.cooks >= MAX_COOKS ? "Cook limit reached (4/4)" : "Hire a cook";
+  $("oven").textContent = config.ovens >= MAX_OVENS ? "Oven limit reached (3/3)" : "Add an oven";
+  const limitReached = phase >= 2 && (config.cooks >= MAX_COOKS || config.ovens >= MAX_OVENS);
+  $("resourceLimit").classList.toggle("hidden", !limitReached);
+  $("resourceLimit").textContent = limitReached ? "This shop has room for at most 4 cooks and 3 ovens. Once a limit is reached, try adjusting demand or improving the bottleneck instead of adding more resources." : "";
   $("demandControl").classList.toggle("hidden",phase<2);
   const stages = [
     ["STEP 1 · OBSERVE","Open your restaurant","Start with one cook and one oven. Watch how an order becomes a pizza."],
@@ -147,6 +158,7 @@ function render() {
   if(cookLimit<ovenLimit)lesson+="Adding ovens alone will not increase maximum throughput.";
   else if(ovenLimit<cookLimit)lesson+="Adding cooks alone will not increase maximum throughput.";
   else lesson+="Both stages have equal capacity; adding only one resource type will not raise maximum throughput.";
+  if (config.cooks===MAX_COOKS || config.ovens===MAX_OVENS) lesson+=" Resource limits: "+config.cooks+"/"+MAX_COOKS+" cooks and "+config.ovens+"/"+MAX_OVENS+" ovens. More resources are not always an option.";
   $("capacityExplanation").textContent=lesson;
   // Every received order is either outstanding or completed.
   const outstanding=state.waiting.length+state.cooking.length+state.prepared.length+state.baking.length;
@@ -176,7 +188,14 @@ function changeDemand(amount){
 }
 $("lessDemand").onclick=()=>changeDemand(-1);
 $("moreDemand").onclick=()=>changeDemand(1);
-function improve(kind){config[kind]++;phase=3;showPhase();render()}
+function improve(kind){
+  const limit = kind === "cooks" ? MAX_COOKS : MAX_OVENS;
+  if(config[kind]>=limit)return;
+  config[kind]++;
+  phase=3;
+  showPhase();
+  render();
+}
 $("cook").onclick=()=>improve("cooks");
 $("oven").onclick=()=>improve("ovens");
 $("continue").onclick=()=>{phase=2;showPhase();render()};

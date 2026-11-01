@@ -76,6 +76,17 @@ button.secondary:hover:not(:disabled){background:#e9efff;border-color:#9eb7ee}
 #bottleneckDialog p{line-height:1.5}
 @media(max-width:900px){.dashboard-header{flex-wrap:wrap}.dashboard-header .actions{justify-content:flex-start}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){main{padding:10px}.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.dialog-heading{align-items:flex-start}.dialog-heading button{padding:6px 9px}}
+
+/* Keep all experiment controls on one row on desktop, as in the approved mockup. */
+.experiment-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px}
+.control-group{display:flex;align-items:center;gap:8px;padding-right:12px;border-right:1px solid #d7e1f1}
+.control-group .control-label{font-size:.86rem;font-weight:650;white-space:nowrap}
+.control-group button{margin:0;white-space:nowrap}
+.control-group #demandSetting{min-width:48px;text-align:center}
+.control-group.hidden{display:none}
+.experiment-controls .hidden{display:none}
+#resourceLimit{font-size:.78rem;margin-top:6px}
+@media(max-width:700px){.experiment-controls{gap:10px}.control-group{border:0;padding-right:0;flex-wrap:wrap}}
 </style>
 </head>
 <body>
@@ -83,13 +94,13 @@ button.secondary:hover:not(:disabled){background:#e9efff;border-color:#9eb7ee}
 <header class="dashboard-header"><div><small>BREAK MY SYSTEM · EXPERIMENT 01</small><h1>🍕 Your Pizza Shop</h1><p>Start simple. Increase demand. Find the bottleneck.</p></div><div id="headerActions" class="actions"><button id="switch" class="secondary">Software view</button><button id="pause" class="secondary" disabled>Pause</button><button id="restart" class="secondary">Restart</button></div></header>
 <section class="card story"><div class="section-heading"><h2>1. Experiment</h2><small id="stage">STEP 1 · OBSERVE</small></div><strong id="title" class="lesson-title">Open your restaurant</strong>
 <p id="instruction">One cook prepares each pizza in 10 seconds. One oven bakes each pizza in 15 seconds. Start the restaurant and watch orders move.</p>
-<div id="demandControl" class="demand-control hidden"><span>Incoming customers:</span><button id="lessDemand" type="button" aria-label="Decrease customers per minute">−</button><strong id="demandSetting">10/min</strong><button id="moreDemand" type="button" aria-label="Increase customers per minute">+</button><span class="hint">1–20/min · changes apply without resetting orders</span></div><div class="actions">
-<button class="primary" id="start">Start restaurant</button>
-<button class="primary hidden" id="surge">Customers are arriving faster</button>
-<button id="cook" class="hidden">Hire a cook</button>
-<button id="oven" class="hidden">Add an oven</button>
-<p id="resourceLimit" class="hint hidden" role="status"></p>
-</div></section>
+<div class="experiment-controls">
+  <div id="demandControl" class="control-group hidden"><span class="control-label">Incoming rate</span><button id="lessDemand" type="button" aria-label="Decrease customers per minute">−</button><strong id="demandSetting">10/min</strong><button id="moreDemand" type="button" aria-label="Increase customers per minute">+</button></div>
+  <div id="cookControl" class="control-group hidden"><span class="control-label">Cooks <strong id="cookCount">1/4</strong></span><button id="cook" type="button">Hire +</button></div>
+  <div id="ovenControl" class="control-group hidden"><span class="control-label">Ovens <strong id="ovenCount">1/3</strong></span><button id="oven" type="button">Add +</button></div>
+  <button class="primary" id="start">Start restaurant</button>
+  <button class="primary hidden" id="surge">Customers are arriving faster</button>
+</div><p id="resourceLimit" class="hint hidden" role="status"></p></section>
 <section class="card"><h2 id="viewTitle">2. Inside your restaurant</h2>
 <p class="hint" id="flowHint">Each number is an order count. Orders flow left to right; queues grow when a stage cannot keep up.</p>
 <div class="simulation-area"><div class="flow" id="flow" aria-live="off"></div><div class="activity" aria-live="polite" aria-atomic="true"><strong>Live order activity</strong><p id="nextArrival">Next customer: —</p><p id="preparing">Cooking: —</p><p id="baking">Baking: —</p><p id="recentEvent">Press Start restaurant to begin.</p></div></div></section>
@@ -151,14 +162,16 @@ function advanceOneSecond() {
 function showPhase() {
   $("start").classList.toggle("hidden",phase !== 0);
   $("surge").classList.toggle("hidden",phase !== 1);
-  $("cook").classList.toggle("hidden",phase < 2);
-  $("oven").classList.toggle("hidden",phase < 2);
+  $("cookControl").classList.toggle("hidden",phase < 2);
+  $("ovenControl").classList.toggle("hidden",phase < 2);
 
   $("pause").disabled = phase === 0;
   $("cook").disabled = config.cooks >= MAX_COOKS;
   $("oven").disabled = config.ovens >= MAX_OVENS;
-  $("cook").textContent = config.cooks >= MAX_COOKS ? "Cook limit reached (4/4)" : "Hire a cook";
-  $("oven").textContent = config.ovens >= MAX_OVENS ? "Oven limit reached (3/3)" : "Add an oven";
+  $("cook").textContent = config.cooks >= MAX_COOKS ? "Max reached" : "Hire +";
+  $("oven").textContent = config.ovens >= MAX_OVENS ? "Max reached" : "Add +";
+  $("cookCount").textContent=config.cooks+"/"+MAX_COOKS;
+  $("ovenCount").textContent=config.ovens+"/"+MAX_OVENS;
   const limitReached = phase >= 2 && (config.cooks >= MAX_COOKS || config.ovens >= MAX_OVENS);
   $("resourceLimit").classList.toggle("hidden", !limitReached);
   $("resourceLimit").textContent = limitReached ? "This shop has room for at most 4 cooks and 3 ovens. Once a limit is reached, try adjusting demand or improving the bottleneck instead of adding more resources." : "";
@@ -184,7 +197,7 @@ function render() {
   const maxThroughput=Math.min(ovenLimit,cookLimit);
   const limitingStage=cookLimit===ovenLimit?"Both stages":cookLimit<ovenLimit?"Cooking":"Baking";
   const details=["arriving","waiting for worker",config.cooks+" total workers","waiting for resource",config.ovens+" total resources","completed"];
-  if(!softwareView){details[1]="waiting for cook";details[2]=config.cooks+" cooks available";details[3]="waiting for oven";details[4]=config.ovens+" ovens available";}
+  if(!softwareView){details[1]="waiting for cook";details[2]=state.cooking.length+" of "+config.cooks+" cooks busy";details[3]="waiting for oven";details[4]=state.baking.length+" of "+config.ovens+" ovens busy";}
   $("flow").replaceChildren();
   names.forEach((name,i)=>{
     const box=document.createElement("div");

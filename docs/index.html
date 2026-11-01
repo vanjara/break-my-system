@@ -40,28 +40,60 @@ button{padding:8px 12px;font-size:.88rem}.flow{gap:7px}
 .health-note{font-size:.88rem;margin-top:8px;padding:8px}
 @media(max-width:1050px){.simulation-area{grid-template-columns:1fr}.simulation-area .activity{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px}.simulation-area .activity strong{grid-column:1/-1}}
 @media(max-width:700px){.simulation-area .activity{display:block}.health-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Approved dashboard: one compact column, full-width restaurant flow, and an on-demand explanation. */
+main{max-width:1340px;padding:12px 20px}
+.dashboard-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:10px}
+.dashboard-header h1{font-size:1.6rem}.dashboard-header p{font-size:.85rem}
+.dashboard-header .actions{justify-content:flex-end}
+button.secondary{background:#fff;color:#244d9f;border-color:#cbd8ee}
+button.secondary:hover:not(:disabled){background:#e9efff;border-color:#9eb7ee}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.section-heading small{font-size:.75rem}
+.lesson-title{display:block;font-size:.86rem;margin:4px 0}
+.story #instruction{font-size:.82rem;margin:3px 0 6px}
+.story .demand-control{margin:5px 0;gap:6px}
+.story .actions{gap:3px}
+.card{padding:12px 16px;margin:9px 0}
+.flow{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.simulation-area{display:block}
+.simulation-area .activity{display:flex;align-items:center;flex-wrap:wrap;gap:6px 18px;padding:8px 10px;margin-top:8px}
+.simulation-area .activity strong{margin:0}
+.simulation-area .activity p{margin:0}
+.station{min-height:120px}
+.health-grid{gap:9px}
+.health-note{margin-top:8px}
+.why-button{margin:9px 0 0}
+#bottleneckDialog{border:1px solid #cbd9ff;border-radius:16px;box-shadow:0 18px 55px #162b4c35;background:white;color:#182740;width:min(560px,calc(100vw - 28px));max-height:min(85vh,700px);overflow:auto;padding:20px}
+#bottleneckDialog::backdrop{background:#10254b88}
+.dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.dialog-heading h2{margin:0;font-size:1.25rem}
+.dialog-heading button{flex-shrink:0}
+.dialog-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+.dialog-metrics div{background:#f2f5ff;border-radius:10px;padding:12px;font-size:.85rem}
+.dialog-metrics strong{display:block;font-size:1.35rem;margin-top:5px}
+#bottleneckDialog h3{font-size:1rem;margin:12px 0 5px}
+#bottleneckDialog p{line-height:1.5}
+@media(max-width:900px){.dashboard-header{flex-wrap:wrap}.dashboard-header .actions{justify-content:flex-start}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){main{padding:10px}.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.dialog-heading{align-items:flex-start}.dialog-heading button{padding:6px 9px}}
 </style>
 </head>
 <body>
 <main>
-<header><small>BREAK MY SYSTEM · EXPERIMENT 01</small><h1>🍕 Your Pizza Shop</h1>
-<p>Start with a simple restaurant. Watch what happens when demand grows. Improve the part that actually limits the system.</p></header>
-<section class="card story"><small id="stage">STEP 1 · OBSERVE</small><h2 id="title">Open your restaurant</h2>
+<header class="dashboard-header"><div><small>BREAK MY SYSTEM · EXPERIMENT 01</small><h1>🍕 Your Pizza Shop</h1><p>Start simple. Increase demand. Find the bottleneck.</p></div><div id="headerActions" class="actions"><button id="switch" class="secondary">Software view</button><button id="pause" class="secondary" disabled>Pause</button><button id="restart" class="secondary">Restart</button></div></header>
+<section class="card story"><div class="section-heading"><h2>1. Experiment</h2><small id="stage">STEP 1 · OBSERVE</small></div><strong id="title" class="lesson-title">Open your restaurant</strong>
 <p id="instruction">One cook prepares each pizza in 10 seconds. One oven bakes each pizza in 15 seconds. Start the restaurant and watch orders move.</p>
-<div class="actions">
+<div id="demandControl" class="demand-control hidden"><span>Incoming customers:</span><button id="lessDemand" type="button" aria-label="Decrease customers per minute">−</button><strong id="demandSetting">10/min</strong><button id="moreDemand" type="button" aria-label="Increase customers per minute">+</button><span class="hint">1–20/min · changes apply without resetting orders</span></div><div class="actions">
 <button class="primary" id="start">Start restaurant</button>
 <button class="primary hidden" id="surge">Customers are arriving faster</button>
 <button id="cook" class="hidden">Hire a cook</button>
 <button id="oven" class="hidden">Add an oven</button>
 <p id="resourceLimit" class="hint hidden" role="status"></p>
-
-<button id="pause" disabled>Pause</button><button id="restart">Restart experiment</button>
-</div><div id="demandControl" class="demand-control hidden"><span>Incoming customers:</span><button id="lessDemand" type="button" aria-label="Decrease customers per minute">−</button><strong id="demandSetting">10/min</strong><button id="moreDemand" type="button" aria-label="Increase customers per minute">+</button><span class="hint">1–20/min · changes apply without resetting orders</span></div></section>
-<section class="card"><div class="actions view-actions"><button id="switch">Software view</button></div>
-<h2 id="viewTitle">Inside your restaurant</h2>
+</div></section>
+<section class="card"><h2 id="viewTitle">2. Inside your restaurant</h2>
 <p class="hint" id="flowHint">Each number is an order count. Orders flow left to right; queues grow when a stage cannot keep up.</p>
 <div class="simulation-area"><div class="flow" id="flow" aria-live="off"></div><div class="activity" aria-live="polite" aria-atomic="true"><strong>Live order activity</strong><p id="nextArrival">Next customer: —</p><p id="preparing">Cooking: —</p><p id="baking">Baking: —</p><p id="recentEvent">Press Start restaurant to begin.</p></div></div></section>
-<section class="card"><div class="health-heading"><h2>System health · at a glance</h2><span id="healthStatus" class="status-label">Healthy</span></div><div class="health-grid"><div class="health-item">Incoming demand<strong id="healthDemand">3/min</strong></div><div class="health-item">Maximum capacity<strong id="healthCapacity">4/min</strong></div><div class="health-item">Orders outstanding<strong id="healthBacklog">0</strong></div><div class="health-item">Limiting resource<strong id="healthBottleneck">Ovens</strong></div></div><p id="healthExplanation" class="health-note" aria-live="polite">Start the restaurant to see its behavior.</p></section>
+<section class="card"><div class="health-heading"><h2>3. System health</h2><span id="healthStatus" class="status-label">Healthy</span></div><div class="health-grid"><div class="health-item">Incoming demand<strong id="healthDemand">3/min</strong></div><div class="health-item">Maximum capacity<strong id="healthCapacity">4/min</strong></div><div class="health-item">Orders outstanding<strong id="healthBacklog">0</strong></div><div class="health-item">Limiting resource<strong id="healthBottleneck">Ovens</strong></div></div><p id="healthExplanation" class="health-note" aria-live="polite">Start the restaurant to see its behavior.</p><button id="whyBottleneck" type="button" class="secondary why-button">Why is this the limiting resource?</button></section>
 <details class="card details-panel"><summary>Explore capacity calculations and all metrics</summary>
 <section class="card"><h2>Capacity &amp; bottlenecks</h2><p class="hint">One cook prepares 6 pizzas/min; one oven bakes 4 pizzas/min. The slower stage limits the whole shop.</p><div class="capacity-grid"><div class="capacity-item">Cooking capacity<strong id="cookCapacity">6/min</strong><span id="cookUtil">50% of capacity needed</span><div class="meter"><span id="cookMeter"></span></div></div><div class="capacity-item">Baking capacity<strong id="ovenCapacity">4/min</strong><span id="ovenUtil">75% of capacity needed</span><div class="meter"><span id="ovenMeter"></span></div></div><div class="capacity-item">Maximum shop throughput<strong id="shopCapacity">4/min</strong><span id="headroom">1/min spare capacity</span></div></div><p class="capacity-note" id="capacityExplanation" aria-live="polite"></p></section>
 <section class="card"><h2>What is happening?</h2><p id="explanation">Press Start restaurant to begin.</p>
@@ -73,6 +105,7 @@ button{padding:8px 12px;font-size:.88rem}.flow{gap:7px}
 <p class="hint">This is a simplified, deterministic model. It assumes every order takes exactly 10 seconds to prepare and 15 seconds to bake. Each oven handles one pizza at a time.</p>
 </section>
 </details>
+<dialog id="bottleneckDialog" aria-labelledby="dialogTitle"><div class="dialog-heading"><h2 id="dialogTitle">Why is this the limiting resource?</h2><button id="closeBottleneck" type="button" class="secondary">Close ✕</button></div><p id="dialogSummary"></p><div class="dialog-metrics"><div>Cooking capacity<strong id="dialogCooking"></strong></div><div>Baking capacity<strong id="dialogBaking"></strong></div><div>Incoming demand<strong id="dialogDemand"></strong></div><div>Outstanding orders<strong id="dialogOutstanding"></strong></div></div><h3>What should you try?</h3><p id="dialogAdvice"></p><p class="hint">The restaurant continues running while this explanation is open. Close to experiment.</p></dialog>
 <footer class="hint">GitHub Pages prototype · No AI, server, or database required.</footer>
 </main>
 <script>
@@ -141,7 +174,7 @@ function showPhase() {
   $("instruction").textContent=stages[phase][2];
 }
 function render() {
-  $("viewTitle").textContent=softwareView?"The same system as software":"Inside your restaurant";
+  $("viewTitle").textContent=softwareView?"2. Inside your software system":"2. Inside your restaurant";
   const names=softwareView
     ? ["Requests","Request queue","App workers","Database queue","Database busy","Completed"]
     : ["Customers / min","Order queue","Cooks busy","Oven queue","Ovens busy","Pizzas served"];
@@ -190,6 +223,15 @@ function render() {
   $("healthCapacity").textContent=maxThroughput+"/min";
   $("healthBacklog").textContent=state.waiting.length+state.cooking.length+state.prepared.length+state.baking.length;
   $("healthBottleneck").textContent=limitingStage;
+  $("dialogCooking").textContent=cookLimit+"/min";
+  $("dialogBaking").textContent=ovenLimit+"/min";
+  $("dialogDemand").textContent=config.demand+"/min";
+  $("dialogOutstanding").textContent=state.waiting.length+state.cooking.length+state.prepared.length+state.baking.length;
+  $("dialogSummary").textContent="Cooking can prepare "+cookLimit+" pizzas/minute, but baking can finish "+ovenLimit+"/minute. Maximum throughput is "+maxThroughput+"/minute, limited by "+limitingStage.toLowerCase()+".";
+  const excess=config.demand-maxThroughput;
+  const load=excess>0?"Demand exceeds capacity by "+excess+"/minute, so outstanding orders will grow.":excess===0?"Demand matches maximum capacity, leaving no headroom to clear an old backlog.":"Demand is below maximum capacity by "+(-excess)+"/minute. A previous backlog can gradually clear.";
+  const choice=cookLimit<ovenLimit?"Adding a cook may help, if room is available. More ovens alone cannot increase throughput.":ovenLimit<cookLimit?"Adding an oven may help, if room is available. More cooks alone cannot increase throughput.":"Both stages have equal capacity; increasing only one stage will not raise maximum throughput.";
+  $("dialogAdvice").textContent=load+" "+choice+" Resources are limited to "+MAX_COOKS+" cooks and "+MAX_OVENS+" ovens.";
   $("healthStatus").textContent=config.demand>maxThroughput?"Overloaded":config.demand===maxThroughput?"At capacity":"Healthy";
   $("healthStatus").className="status-label "+(config.demand>maxThroughput?"overloaded":config.demand===maxThroughput?"at-capacity":"healthy");
   $("healthExplanation").textContent=config.demand>maxThroughput?"Demand exceeds capacity by "+(config.demand-maxThroughput)+"/min; backlog will grow.":config.demand===maxThroughput?"At theoretical capacity; no spare throughput to drain old backlog.":"Spare capacity: "+(maxThroughput-config.demand)+"/min. Existing backlog can gradually clear.";
@@ -212,6 +254,9 @@ function render() {
   else if (config.demand===maxThroughput) $("explanation").textContent="Incoming demand equals the shop's theoretical maximum of "+maxThroughput+"/min. There is no spare capacity for surges.";
   else $("explanation").textContent="Incoming demand is "+config.demand+"/min and maximum capacity is "+maxThroughput+"/min. The shop can keep up; existing backlogs may still take time to clear.";
 }
+$("whyBottleneck").onclick=()=>$("bottleneckDialog").showModal();
+$("closeBottleneck").onclick=()=>$("bottleneckDialog").close();
+$("bottleneckDialog").onclick=(event)=>{if(event.target===$("bottleneckDialog"))$("bottleneckDialog").close()};
 $("start").onclick=()=>{
   phase=1;
   running=true;

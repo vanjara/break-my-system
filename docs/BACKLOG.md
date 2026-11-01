@@ -26,6 +26,14 @@ This is a **prioritized list of ideas, not a commitment to implement everything*
 | Retries and backoff | Can retrying make overload worse? | Failed requests return with and without backoff |
 | Resource economics | When is adding capacity worth it? | Add a simple cost budget after the resource limits are understood |
 
+## Product experiments — ideas to evaluate, not committed features
+
+- **Learning/game stages:** evolve the same simple system through progressively harder constraints (growth, bottlenecks, finite resources, overload, recovery, and software application). Each stage should introduce one problem and explain the engineering tradeoff; avoid unnecessary navigation clicks.
+- **System version comparisons:** let learners compare Design A vs Design B under identical demand, duration, and constraints, examining throughput, backlog, latency, and eventual resource cost. Initially this is a controlled scenario comparison, not randomized statistical A/B testing.
+- **A/B test Break My System itself:** compare two versions of the *learning experience* (for example, current free-exploration dashboard vs guided game-like stages) using the **same simulation behavior**.
+- **Start without an experimentation platform:** use existing GitHub PR preview URLs for Version A and Version B. Ask learners to solve the same task, then compare whether they identify the bottleneck, select an effective change, explain why, and how much assistance/time they need.
+- **Decision rule:** prefer the design that improves demonstrated understanding and usability, not simply the one that looks more attractive. Collect qualitative feedback first; consider randomized assignment and analytics only if sample size and learning goals justify it.
+
 ## Longer-term learning paths
 
 - **Database internals:** why databases, scans and indexes, B-trees/pages, transactions, WAL, replication.

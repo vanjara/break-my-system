@@ -6,17 +6,18 @@
 <title>Break My System — Pizza Shop</title>
 <style>
 :root{font-family:system-ui,-apple-system,sans-serif;color:#182740;background:#f3f6fc}
-*{box-sizing:border-box}body{margin:0}main{max-width:1020px;margin:auto;padding:28px 18px}
-header small{font-weight:800;letter-spacing:.12em;color:#5068a3}h1{margin:8px 0;font-size:2.3rem}
-p{line-height:1.55}.card{background:#fff;border:1px solid #d7e1f1;border-radius:16px;padding:22px;margin:18px 0}
+*{box-sizing:border-box}body{margin:0}main{max-width:1180px;margin:auto;padding:14px 18px}
+header small{font-weight:800;letter-spacing:.12em;color:#5068a3}h1{margin:5px 0;font-size:1.8rem}header p{margin:5px 0 10px}
+p{line-height:1.55}.card{background:#fff;border:1px solid #d7e1f1;border-radius:16px;padding:14px 18px;margin:10px 0}
 .story{background:#e9efff;border-color:#c5d5ff}button{border:1px solid #315fd2;background:#315fd2;color:white;border-radius:9px;padding:11px 15px;font:inherit;font-weight:600;cursor:pointer;margin:4px 6px 4px 0}
 button.primary{background:#315fd2;color:white;border-color:#315fd2}button:hover:not(:disabled){background:#244eb7;border-color:#244eb7}button:focus-visible{outline:3px solid #93b4ff;outline-offset:2px}button:disabled{opacity:.45;cursor:not-allowed}
 .actions{display:flex;flex-wrap:wrap;gap:5px}.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:18px}
-.station{background:#f7f9ff;border:2px solid #dfe7f7;border-radius:12px;padding:16px 8px;text-align:center;min-height:150px}
-.station strong{display:block;font-size:1.7rem;margin:8px 0}.station .icon{display:block;font-size:1.8rem;margin-bottom:9px}.arrival-event{height:16px;margin-top:10px;color:#315fd2;font-size:.8rem;font-weight:700}.arrival-event.active{animation:arrival-flash .7s ease-out}@keyframes arrival-flash{from{opacity:.2;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.station small{color:#667085}.station.busy{border-color:#d97706;background:#fff3db}
-.capacity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.capacity-item{background:#f2f5ff;padding:16px;border-radius:12px}.capacity-item strong{display:block;font-size:1.5rem;margin:7px 0}.meter{height:10px;border-radius:9px;background:#dbe4f0;overflow:hidden;margin-top:10px}.meter span{display:block;height:100%;background:#3267ce;transition:width .2s}.capacity-note{margin-top:15px;padding:14px;background:#f7f9fd;border-left:4px solid #3267ce;border-radius:6px}.demand-control{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}.demand-control button{min-width:44px}.demand-control strong{min-width:75px;text-align:center}.activity{background:#eef3ff;border:1px solid #cbd9ff;border-radius:12px;padding:15px;margin-top:18px}.activity strong{display:block;margin-bottom:6px}.activity p{margin:5px 0}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stat{padding:12px;background:#f2f5ff;border-radius:10px}
-.stat strong{display:block;font-size:1.35rem}.hint{color:#475467;font-size:.93rem}.hidden{display:none}
-@media(max-width:700px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:1fr 1fr}.capacity-grid{grid-template-columns:1fr}.station{min-height:145px}h1{font-size:1.9rem}}
+.station{background:#f7f9ff;border:2px solid #dfe7f7;border-radius:12px;padding:10px 7px;text-align:center;min-height:112px}
+.station strong{display:block;font-size:1.45rem;margin:5px 0}.station .icon{display:block;font-size:1.5rem;margin-bottom:4px}.arrival-event{height:16px;margin-top:10px;color:#315fd2;font-size:.8rem;font-weight:700}.arrival-event.active{animation:arrival-flash .7s ease-out}@keyframes arrival-flash{from{opacity:.2;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.station small{color:#667085}.station.busy{border-color:#d97706;background:#fff3db}
+.capacity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.capacity-item{background:#f2f5ff;padding:16px;border-radius:12px}.capacity-item strong{display:block;font-size:1.5rem;margin:7px 0}.meter{height:10px;border-radius:9px;background:#dbe4f0;overflow:hidden;margin-top:10px}.meter span{display:block;height:100%;background:#3267ce;transition:width .2s}.capacity-note{margin-top:15px;padding:14px;background:#f7f9fd;border-left:4px solid #3267ce;border-radius:6px}.demand-control{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}.demand-control button{min-width:44px}.demand-control strong{min-width:75px;text-align:center}.activity{background:#eef3ff;border:1px solid #cbd9ff;border-radius:12px;padding:10px 12px;margin-top:10px}.activity strong{display:block;margin-bottom:4px}.activity p{margin:3px 0}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.stat{padding:9px;background:#f2f5ff;border-radius:10px}
+.stat strong{display:block;font-size:1.2rem}.hint{color:#475467;font-size:.93rem}.hidden{display:none}
+@media(max-width:850px){.health-grid{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:1fr 1fr}.capacity-grid{grid-template-columns:1fr}.station{min-height:145px}h1{font-size:1.9rem}}
+ .card h2{font-size:1.15rem;margin:4px 0 8px}.story p{margin:6px 0}.flow{margin-top:10px}.health-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.health-item{background:#f2f5ff;padding:10px;border-radius:10px}.health-item strong{display:block;font-size:1.3rem;margin-top:5px}.health-note{margin:10px 0 0;padding:10px;background:#eef3ff;border-left:4px solid #315fd2;border-radius:6px}.details-panel summary{cursor:pointer;color:#315fd2;font-weight:700}.details-panel summary:focus-visible{outline:3px solid #93b4ff}@media(max-width:850px){.health-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -33,11 +34,13 @@ button.primary{background:#315fd2;color:white;border-color:#315fd2}button:hover:
 <p id="resourceLimit" class="hint hidden" role="status"></p>
 <button id="continue" class="hidden">Continue improving (keep orders)</button>
 <button id="pause" disabled>Pause</button><button id="restart">Restart experiment</button>
-</div></section>
+</div><div id="demandControl" class="demand-control hidden"><span>Incoming customers:</span><button id="lessDemand" type="button" aria-label="Decrease customers per minute">−</button><strong id="demandSetting">10/min</strong><button id="moreDemand" type="button" aria-label="Increase customers per minute">+</button><span class="hint">1–20/min · changes apply without resetting orders</span></div></section>
 <section class="card"><div class="actions"><button id="switch">Switch to software view</button></div>
 <h2 id="viewTitle">Inside your restaurant</h2>
 <p class="hint" id="flowHint">Each number is an order count. Orders flow left to right; queues grow when a stage cannot keep up.</p>
-<div class="flow" id="flow" aria-live="off"></div><div id="demandControl" class="demand-control hidden"><span>Incoming customers:</span><button id="lessDemand" type="button" aria-label="Decrease customers per minute">−</button><strong id="demandSetting">10/min</strong><button id="moreDemand" type="button" aria-label="Increase customers per minute">+</button><span class="hint">1–20/min · changes apply without resetting orders</span></div><div class="activity" aria-live="polite" aria-atomic="true"><strong>Live order activity</strong><p id="nextArrival">Next customer: —</p><p id="preparing">Cooking: —</p><p id="baking">Baking: —</p><p id="recentEvent">Press Start restaurant to begin.</p></div></section>
+<div class="flow" id="flow" aria-live="off"></div><div class="activity" aria-live="polite" aria-atomic="true"><strong>Live order activity</strong><p id="nextArrival">Next customer: —</p><p id="preparing">Cooking: —</p><p id="baking">Baking: —</p><p id="recentEvent">Press Start restaurant to begin.</p></div></section>
+<section class="card"><h2>System health · at a glance</h2><div class="health-grid"><div class="health-item">Incoming demand<strong id="healthDemand">3/min</strong></div><div class="health-item">Maximum capacity<strong id="healthCapacity">4/min</strong></div><div class="health-item">Orders outstanding<strong id="healthBacklog">0</strong></div><div class="health-item">Bottleneck<strong id="healthBottleneck">Ovens</strong></div></div><p id="healthExplanation" class="health-note" aria-live="polite">Start the restaurant to see its behavior.</p></section>
+<details class="card details-panel"><summary>Explore capacity calculations and all metrics</summary>
 <section class="card"><h2>Capacity &amp; bottlenecks</h2><p class="hint">One cook prepares 6 pizzas/min; one oven bakes 4 pizzas/min. The slower stage limits the whole shop.</p><div class="capacity-grid"><div class="capacity-item">Cooking capacity<strong id="cookCapacity">6/min</strong><span id="cookUtil">50% of capacity needed</span><div class="meter"><span id="cookMeter"></span></div></div><div class="capacity-item">Baking capacity<strong id="ovenCapacity">4/min</strong><span id="ovenUtil">75% of capacity needed</span><div class="meter"><span id="ovenMeter"></span></div></div><div class="capacity-item">Maximum shop throughput<strong id="shopCapacity">4/min</strong><span id="headroom">1/min spare capacity</span></div></div><p class="capacity-note" id="capacityExplanation" aria-live="polite"></p></section>
 <section class="card"><h2>What is happening?</h2><p id="explanation">Press Start restaurant to begin.</p>
 <div class="stats"><div class="stat">Total orders received<strong id="received">0</strong></div><div class="stat">Orders still in system<strong id="outstanding">0</strong></div><div class="stat">Demand <strong id="demand">3/min</strong></div>
@@ -47,6 +50,7 @@ button.primary{background:#315fd2;color:white;border-color:#315fd2}button:hover:
 <div class="stat">Elapsed <strong id="elapsed">0s</strong></div></div>
 <p class="hint">This is a simplified, deterministic model. It assumes every order takes exactly 10 seconds to prepare and 15 seconds to bake. Each oven handles one pizza at a time.</p>
 </section>
+</details>
 <footer class="hint">GitHub Pages prototype · No AI, server, or database required.</footer>
 </main>
 <script>
@@ -160,6 +164,11 @@ function render() {
   else lesson+="Both stages have equal capacity; adding only one resource type will not raise maximum throughput.";
   if (config.cooks===MAX_COOKS || config.ovens===MAX_OVENS) lesson+=" Resource limits: "+config.cooks+"/"+MAX_COOKS+" cooks and "+config.ovens+"/"+MAX_OVENS+" ovens. More resources are not always an option.";
   $("capacityExplanation").textContent=lesson;
+  $("healthDemand").textContent=config.demand+"/min";
+  $("healthCapacity").textContent=maxThroughput+"/min";
+  $("healthBacklog").textContent=state.waiting.length+state.cooking.length+state.prepared.length+state.baking.length;
+  $("healthBottleneck").textContent=limitingStage;
+  $("healthExplanation").textContent=config.demand>maxThroughput?"Demand exceeds capacity by "+(config.demand-maxThroughput)+"/min; backlog will grow.":config.demand===maxThroughput?"At theoretical capacity; no spare throughput to drain old backlog.":"Spare capacity: "+(maxThroughput-config.demand)+"/min. Existing backlog can gradually clear.";
   // Every received order is either outstanding or completed.
   const outstanding=state.waiting.length+state.cooking.length+state.prepared.length+state.baking.length;
   $("received").textContent=state.received;

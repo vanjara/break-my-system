@@ -18,6 +18,28 @@ button.primary{background:#315fd2;color:white;border-color:#315fd2}button:hover:
 .stat strong{display:block;font-size:1.2rem}.hint{color:#475467;font-size:.93rem}.hidden{display:none}
 @media(max-width:850px){.health-grid{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:1fr 1fr}.capacity-grid{grid-template-columns:1fr}.station{min-height:145px}h1{font-size:1.9rem}}
  .card h2{font-size:1.15rem;margin:4px 0 8px}.story p{margin:6px 0}.flow{margin-top:10px}.health-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.health-item{background:#f2f5ff;padding:10px;border-radius:10px}.health-item strong{display:block;font-size:1.3rem;margin-top:5px}.health-note{margin:10px 0 0;padding:10px;background:#eef3ff;border-left:4px solid #315fd2;border-radius:6px}.details-panel summary{cursor:pointer;color:#315fd2;font-weight:700}.details-panel summary:focus-visible{outline:3px solid #93b4ff}@media(max-width:850px){.health-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* Compact, one-screen dashboard: presentation only; simulation logic is unchanged. */
+header small{font-size:.75rem}header h1{margin:2px 0}header p{font-size:.88rem}
+.card{margin:8px 0;padding:12px 16px}.story{background:#eaf0ff}
+.story .actions{align-items:center}.story .demand-control{margin-top:8px}
+button{padding:8px 12px;font-size:.88rem}.flow{gap:7px}
+.station{min-height:116px;padding:10px 5px}.station .icon{font-size:1.4rem}
+.station strong{font-size:1.4rem}.station small{font-size:.75rem}
+.simulation-area{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:12px;align-items:stretch}
+.simulation-area .flow{margin-top:0}
+.simulation-area .activity{margin-top:0;font-size:.82rem}
+.activity p{margin:7px 0}.activity strong{font-size:.9rem}
+.view-actions{justify-content:flex-end;margin-bottom:4px}
+.health-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.status-label{font-size:.8rem;font-weight:700;padding:5px 10px;border-radius:20px}
+.status-label.healthy{background:#e5f7eb;color:#126b37}
+.status-label.at-capacity{background:#fff1d4;color:#8a5700}
+.status-label.overloaded{background:#ffe6e6;color:#a32626}
+.health-item{padding:9px}.health-item strong{font-size:1.15rem}
+.health-note{font-size:.88rem;margin-top:8px;padding:8px}
+@media(max-width:1050px){.simulation-area{grid-template-columns:1fr}.simulation-area .activity{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px}.simulation-area .activity strong{grid-column:1/-1}}
+@media(max-width:700px){.simulation-area .activity{display:block}.health-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -32,14 +54,14 @@ button.primary{background:#315fd2;color:white;border-color:#315fd2}button:hover:
 <button id="cook" class="hidden">Hire a cook</button>
 <button id="oven" class="hidden">Add an oven</button>
 <p id="resourceLimit" class="hint hidden" role="status"></p>
-<button id="continue" class="hidden">Continue improving (keep orders)</button>
+
 <button id="pause" disabled>Pause</button><button id="restart">Restart experiment</button>
 </div><div id="demandControl" class="demand-control hidden"><span>Incoming customers:</span><button id="lessDemand" type="button" aria-label="Decrease customers per minute">−</button><strong id="demandSetting">10/min</strong><button id="moreDemand" type="button" aria-label="Increase customers per minute">+</button><span class="hint">1–20/min · changes apply without resetting orders</span></div></section>
-<section class="card"><div class="actions"><button id="switch">Switch to software view</button></div>
+<section class="card"><div class="actions view-actions"><button id="switch">Software view</button></div>
 <h2 id="viewTitle">Inside your restaurant</h2>
 <p class="hint" id="flowHint">Each number is an order count. Orders flow left to right; queues grow when a stage cannot keep up.</p>
-<div class="flow" id="flow" aria-live="off"></div><div class="activity" aria-live="polite" aria-atomic="true"><strong>Live order activity</strong><p id="nextArrival">Next customer: —</p><p id="preparing">Cooking: —</p><p id="baking">Baking: —</p><p id="recentEvent">Press Start restaurant to begin.</p></div></section>
-<section class="card"><h2>System health · at a glance</h2><div class="health-grid"><div class="health-item">Incoming demand<strong id="healthDemand">3/min</strong></div><div class="health-item">Maximum capacity<strong id="healthCapacity">4/min</strong></div><div class="health-item">Orders outstanding<strong id="healthBacklog">0</strong></div><div class="health-item">Bottleneck<strong id="healthBottleneck">Ovens</strong></div></div><p id="healthExplanation" class="health-note" aria-live="polite">Start the restaurant to see its behavior.</p></section>
+<div class="simulation-area"><div class="flow" id="flow" aria-live="off"></div><div class="activity" aria-live="polite" aria-atomic="true"><strong>Live order activity</strong><p id="nextArrival">Next customer: —</p><p id="preparing">Cooking: —</p><p id="baking">Baking: —</p><p id="recentEvent">Press Start restaurant to begin.</p></div></div></section>
+<section class="card"><div class="health-heading"><h2>System health · at a glance</h2><span id="healthStatus" class="status-label">Healthy</span></div><div class="health-grid"><div class="health-item">Incoming demand<strong id="healthDemand">3/min</strong></div><div class="health-item">Maximum capacity<strong id="healthCapacity">4/min</strong></div><div class="health-item">Orders outstanding<strong id="healthBacklog">0</strong></div><div class="health-item">Limiting resource<strong id="healthBottleneck">Ovens</strong></div></div><p id="healthExplanation" class="health-note" aria-live="polite">Start the restaurant to see its behavior.</p></section>
 <details class="card details-panel"><summary>Explore capacity calculations and all metrics</summary>
 <section class="card"><h2>Capacity &amp; bottlenecks</h2><p class="hint">One cook prepares 6 pizzas/min; one oven bakes 4 pizzas/min. The slower stage limits the whole shop.</p><div class="capacity-grid"><div class="capacity-item">Cooking capacity<strong id="cookCapacity">6/min</strong><span id="cookUtil">50% of capacity needed</span><div class="meter"><span id="cookMeter"></span></div></div><div class="capacity-item">Baking capacity<strong id="ovenCapacity">4/min</strong><span id="ovenUtil">75% of capacity needed</span><div class="meter"><span id="ovenMeter"></span></div></div><div class="capacity-item">Maximum shop throughput<strong id="shopCapacity">4/min</strong><span id="headroom">1/min spare capacity</span></div></div><p class="capacity-note" id="capacityExplanation" aria-live="polite"></p></section>
 <section class="card"><h2>What is happening?</h2><p id="explanation">Press Start restaurant to begin.</p>
@@ -65,7 +87,7 @@ function reset() {
   state = {seconds:0, credit:0, received:0, lastArrivedAt:null, lastServedAt:null, waiting:[], cooking:[], prepared:[], baking:[], served:[]};
   config = {demand:3,cooks:1,ovens:1};
   phase = 0; running = false; softwareView = false;
-  $("switch").textContent = "Switch to software view";
+  $("switch").textContent = "Software view";
   showPhase(); render();
 }
 function advanceOneSecond() {
@@ -96,9 +118,9 @@ function advanceOneSecond() {
 function showPhase() {
   $("start").classList.toggle("hidden",phase !== 0);
   $("surge").classList.toggle("hidden",phase !== 1);
-  $("cook").classList.toggle("hidden",phase !== 2);
-  $("oven").classList.toggle("hidden",phase !== 2);
-  $("continue").classList.toggle("hidden",phase !== 3);
+  $("cook").classList.toggle("hidden",phase < 2);
+  $("oven").classList.toggle("hidden",phase < 2);
+
   $("pause").disabled = phase === 0;
   $("cook").disabled = config.cooks >= MAX_COOKS;
   $("oven").disabled = config.ovens >= MAX_OVENS;
@@ -112,7 +134,7 @@ function showPhase() {
     ["STEP 1 · OBSERVE","Open your restaurant","Start with one cook and one oven. Watch how an order becomes a pizza."],
     ["STEP 2 · GROW","The restaurant is working","Orders move through the cook and oven. Now introduce more customers."],
     ["STEP 3 · DECIDE","Orders are piling up","Change incoming demand or try hiring a cook or adding an oven. Which change will help more?"],
-    ["STEP 4 · LEARN","Observe your decision","Watch the waiting counts change. You can continue improving without losing orders, or restart to compare from the same baseline."]
+    ["STEP 4 · LEARN","Keep experimenting","Adjust demand, hire cooks, or add ovens. Every change preserves existing orders and updates system health."]
   ];
   $("stage").textContent=stages[phase][0];
   $("title").textContent=stages[phase][1];
@@ -168,6 +190,8 @@ function render() {
   $("healthCapacity").textContent=maxThroughput+"/min";
   $("healthBacklog").textContent=state.waiting.length+state.cooking.length+state.prepared.length+state.baking.length;
   $("healthBottleneck").textContent=limitingStage;
+  $("healthStatus").textContent=config.demand>maxThroughput?"Overloaded":config.demand===maxThroughput?"At capacity":"Healthy";
+  $("healthStatus").className="status-label "+(config.demand>maxThroughput?"overloaded":config.demand===maxThroughput?"at-capacity":"healthy");
   $("healthExplanation").textContent=config.demand>maxThroughput?"Demand exceeds capacity by "+(config.demand-maxThroughput)+"/min; backlog will grow.":config.demand===maxThroughput?"At theoretical capacity; no spare throughput to drain old backlog.":"Spare capacity: "+(maxThroughput-config.demand)+"/min. Existing backlog can gradually clear.";
   // Every received order is either outstanding or completed.
   const outstanding=state.waiting.length+state.cooking.length+state.prepared.length+state.baking.length;
@@ -219,10 +243,10 @@ function improve(kind){
 }
 $("cook").onclick=()=>improve("cooks");
 $("oven").onclick=()=>improve("ovens");
-$("continue").onclick=()=>{phase=2;showPhase();render()};
+
 $("pause").onclick=()=>{running=!running;$("pause").textContent=running?"Pause":"Resume"};
 $("restart").onclick=()=>reset();
-$("switch").onclick=()=>{softwareView=!softwareView;$("switch").textContent=softwareView?"Switch to restaurant view":"Switch to software view";render()};
+$("switch").onclick=()=>{softwareView=!softwareView;$("switch").textContent=softwareView?"Restaurant view":"Software view";render()};
 setInterval(()=>{if(running){advanceOneSecond();render()}},1000);
 reset();
 </script>

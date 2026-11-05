@@ -27,7 +27,7 @@ An interactive system-design learning tool that teaches experienced engineers sy
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 20.9+ and npm (use a supported Node.js LTS release, such as 22 or 24)
 
 ### Setup
 

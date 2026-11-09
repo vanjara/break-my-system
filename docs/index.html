@@ -116,7 +116,7 @@ button.secondary:hover:not(:disabled){background:#e9efff;border-color:#9eb7ee}
 <p class="hint">This is a simplified, deterministic model. It assumes every order takes exactly 10 seconds to prepare and 15 seconds to bake. Each oven handles one pizza at a time.</p>
 </section>
 </details>
-<dialog id="bottleneckDialog" aria-labelledby="dialogTitle"><div class="dialog-heading"><h2 id="dialogTitle">Why is this the limiting resource?</h2><button id="closeBottleneck" type="button" class="secondary">Close ✕</button></div><p id="dialogSummary"></p><div class="dialog-metrics"><div>Cooking capacity<strong id="dialogCooking"></strong></div><div>Baking capacity<strong id="dialogBaking"></strong></div><div>Incoming demand<strong id="dialogDemand"></strong></div><div>Outstanding orders<strong id="dialogOutstanding"></strong></div></div><h3>What should you try?</h3><p id="dialogAdvice"></p><p class="hint">The restaurant continues running while this explanation is open. Close to experiment.</p></dialog>
+<dialog id="bottleneckDialog" aria-labelledby="dialogTitle"><div class="dialog-heading"><h2 id="dialogTitle">Why is this the limiting resource?</h2><button id="closeBottleneck" type="button" class="secondary">Close ✕</button></div><p id="dialogSummary"></p><div class="dialog-metrics"><div><span id="dialogCookingLabel">Cooking capacity</span><strong id="dialogCooking"></strong></div><div><span id="dialogBakingLabel">Baking capacity</span><strong id="dialogBaking"></strong></div><div>Incoming demand<strong id="dialogDemand"></strong></div><div><span id="dialogOutstandingLabel">Outstanding orders</span><strong id="dialogOutstanding"></strong></div></div><h3>What should you try?</h3><p id="dialogAdvice"></p><p class="hint" id="dialogRunning">The simulation continues while this explanation is open. Close to experiment.</p></dialog>
 <footer class="hint">GitHub Pages prototype · No AI, server, or database required.</footer>
 </main>
 <script>
@@ -136,12 +136,14 @@ function reset() {
 }
 function advanceOneSecond() {
   state.seconds += 1;
-  state.credit += config.demand / 60;
-  while (state.credit >= 1) {
+  // Integer credits keep arrivals exact at every supported rate (1–20/min).
+  // Sixty credits represent one order; avoid repeatedly adding fractions.
+  state.credit += config.demand;
+  while (state.credit >= 60) {
     state.waiting.push({arrived:state.seconds});
     state.received++;
     state.lastArrivedAt=state.seconds;
-    state.credit -= 1;
+    state.credit -= 60;
   }
   // Finish existing work, then assign the newly free resources.
   state.baking.forEach(order => order.remaining--);
@@ -166,6 +168,7 @@ function showPhase() {
   $("ovenControl").classList.toggle("hidden",phase < 2);
 
   $("pause").disabled = phase === 0;
+  $("pause").textContent = running || phase === 0 ? "Pause" : "Resume";
   $("cook").disabled = config.cooks >= MAX_COOKS;
   $("oven").disabled = config.ovens >= MAX_OVENS;
   $("cook").textContent = config.cooks >= MAX_COOKS ? "Max reached" : "Hire +";
@@ -179,7 +182,7 @@ function showPhase() {
   const stages = [
     ["STEP 1 · OBSERVE","Open your restaurant","Start with one cook and one oven. Watch how an order becomes a pizza."],
     ["STEP 2 · GROW","The restaurant is working","Orders move through the cook and oven. Now introduce more customers."],
-    ["STEP 3 · DECIDE","Orders are piling up","Change incoming demand or try hiring a cook or adding an oven. Which change will help more?"],
+    ["STEP 3 · DECIDE","Test demand against capacity","Change incoming demand or try hiring a cook or adding an oven. Which change will help more?"],
     ["STEP 4 · LEARN","Keep experimenting","Adjust demand, hire cooks, or add ovens. Every change preserves existing orders and updates system health."]
   ];
   $("stage").textContent=stages[phase][0];
@@ -187,7 +190,14 @@ function showPhase() {
   $("instruction").textContent=stages[phase][2];
 }
 function render() {
+  const workStage = softwareView ? "App workers" : "Cooking";
+  const resourceStage = softwareView ? "Database" : "Baking";
+  const workers = softwareView ? "app workers" : "cooks";
+  const resources = softwareView ? "database slots" : "ovens";
+  const system = softwareView ? "system" : "shop";
+  const items = softwareView ? "requests" : "orders";
   $("viewTitle").textContent=softwareView?"2. Inside your software system":"2. Inside your restaurant";
+  $("flowHint").textContent=softwareView?"Same model, different names: cooks become app workers; ovens become database slots. This is a simplified analogy, not a database scaling prediction.":"The first number is an arrival rate; the others are order counts. Orders flow left to right; queues grow when a stage cannot keep up.";
   const names=softwareView
     ? ["Requests","Request queue","App workers","Database queue","Database busy","Completed"]
     : ["Customers / min","Order queue","Cooks busy","Oven queue","Ovens busy","Pizzas served"];
@@ -195,7 +205,7 @@ function render() {
   const counts=[config.demand+"/min",state.waiting.length,state.cooking.length,state.prepared.length,state.baking.length,state.served.length];
   const ovenLimit=config.ovens*4, cookLimit=config.cooks*6;
   const maxThroughput=Math.min(ovenLimit,cookLimit);
-  const limitingStage=cookLimit===ovenLimit?"Both stages":cookLimit<ovenLimit?"Cooking":"Baking";
+  const limitingStage=cookLimit===ovenLimit?"Both stages":cookLimit<ovenLimit?workStage:resourceStage;
   const details=["arriving","waiting for worker",config.cooks+" total workers","waiting for resource",config.ovens+" total resources","completed"];
   if(!softwareView){details[1]="waiting for cook";details[2]=state.cooking.length+" of "+config.cooks+" cooks busy";details[3]="waiting for oven";details[4]=state.baking.length+" of "+config.ovens+" ovens busy";}
   $("flow").replaceChildren();
@@ -225,12 +235,12 @@ function render() {
   $("lessDemand").disabled=config.demand<=1;
   $("moreDemand").disabled=config.demand>=20;
   $("headroom").textContent=config.demand<=maxThroughput?(maxThroughput-config.demand)+"/min spare capacity":(config.demand-maxThroughput)+"/min above capacity";
-  let lesson="Bottleneck: "+limitingStage+". Cooking can handle "+cookLimit+"/min and baking "+ovenLimit+"/min, so the shop can complete at most "+maxThroughput+"/min. ";
-  lesson+=config.demand>maxThroughput?"Demand exceeds capacity; the backlog will grow over time. ":"Current capacity is enough for incoming demand; earlier backlogs can still take time to clear. ";
-  if(cookLimit<ovenLimit)lesson+="Adding ovens alone will not increase maximum throughput.";
-  else if(ovenLimit<cookLimit)lesson+="Adding cooks alone will not increase maximum throughput.";
+  let lesson="Bottleneck: "+limitingStage+". "+workStage+" can handle "+cookLimit+"/min and "+resourceStage.toLowerCase()+" "+ovenLimit+"/min, so the "+system+" can complete at most "+maxThroughput+"/min. ";
+  lesson+=config.demand>maxThroughput?"Demand exceeds capacity; the backlog will grow over time. ":config.demand===maxThroughput?"Demand matches capacity; there is no spare capacity to drain an existing backlog. ":"Current capacity is enough for incoming demand; earlier backlogs can still take time to clear. ";
+  if(cookLimit<ovenLimit)lesson+="Adding "+resources+" alone will not increase maximum throughput.";
+  else if(ovenLimit<cookLimit)lesson+="Adding "+workers+" alone will not increase maximum throughput.";
   else lesson+="Both stages have equal capacity; adding only one resource type will not raise maximum throughput.";
-  if (config.cooks===MAX_COOKS || config.ovens===MAX_OVENS) lesson+=" Resource limits: "+config.cooks+"/"+MAX_COOKS+" cooks and "+config.ovens+"/"+MAX_OVENS+" ovens. More resources are not always an option.";
+  if (config.cooks===MAX_COOKS || config.ovens===MAX_OVENS) lesson+=" Resource limits: "+config.cooks+"/"+MAX_COOKS+" "+workers+" and "+config.ovens+"/"+MAX_OVENS+" "+resources+". More resources are not always an option.";
   $("capacityExplanation").textContent=lesson;
   $("healthDemand").textContent=config.demand+"/min";
   $("healthCapacity").textContent=maxThroughput+"/min";
@@ -240,11 +250,15 @@ function render() {
   $("dialogBaking").textContent=ovenLimit+"/min";
   $("dialogDemand").textContent=config.demand+"/min";
   $("dialogOutstanding").textContent=state.waiting.length+state.cooking.length+state.prepared.length+state.baking.length;
-  $("dialogSummary").textContent="Cooking can prepare "+cookLimit+" pizzas/minute, but baking can finish "+ovenLimit+"/minute. Maximum throughput is "+maxThroughput+"/minute, limited by "+limitingStage.toLowerCase()+".";
+  $("dialogSummary").textContent=workStage+" can process "+cookLimit+"/minute, and "+resourceStage.toLowerCase()+" can finish "+ovenLimit+"/minute. Maximum throughput is "+maxThroughput+"/minute, limited by "+limitingStage.toLowerCase()+".";
   const excess=config.demand-maxThroughput;
   const load=excess>0?"Demand exceeds capacity by "+excess+"/minute, so outstanding orders will grow.":excess===0?"Demand matches maximum capacity, leaving no headroom to clear an old backlog.":"Demand is below maximum capacity by "+(-excess)+"/minute. A previous backlog can gradually clear.";
-  const choice=cookLimit<ovenLimit?"Adding a cook may help, if room is available. More ovens alone cannot increase throughput.":ovenLimit<cookLimit?"Adding an oven may help, if room is available. More cooks alone cannot increase throughput.":"Both stages have equal capacity; increasing only one stage will not raise maximum throughput.";
-  $("dialogAdvice").textContent=load+" "+choice+" Resources are limited to "+MAX_COOKS+" cooks and "+MAX_OVENS+" ovens.";
+  const choice=cookLimit<ovenLimit?"Adding "+workers+" may help, if room is available. More "+resources+" alone cannot increase throughput.":ovenLimit<cookLimit?"Adding "+resources+" may help, if room is available. More "+workers+" alone cannot increase throughput.":"Both stages have equal capacity; increasing only one stage will not raise maximum throughput.";
+  $("dialogAdvice").textContent=load+" "+choice+" Resources are limited to "+MAX_COOKS+" "+workers+" and "+MAX_OVENS+" "+resources+".";
+  $("dialogCookingLabel").textContent=workStage+" capacity";
+  $("dialogBakingLabel").textContent=resourceStage+" capacity";
+  $("dialogOutstandingLabel").textContent="Outstanding "+items;
+  $("dialogRunning").textContent=running?"The simulation continues while this explanation is open. Close to experiment.":"The simulation is paused. Close to return to the controls.";
   $("healthStatus").textContent=config.demand>maxThroughput?"Overloaded":config.demand===maxThroughput?"At capacity":"Healthy";
   $("healthStatus").className="status-label "+(config.demand>maxThroughput?"overloaded":config.demand===maxThroughput?"at-capacity":"healthy");
   $("healthExplanation").textContent=config.demand>maxThroughput?"Demand exceeds capacity by "+(config.demand-maxThroughput)+"/min; backlog will grow.":config.demand===maxThroughput?"At theoretical capacity; no spare throughput to drain old backlog.":"Spare capacity: "+(maxThroughput-config.demand)+"/min. Existing backlog can gradually clear.";
@@ -252,11 +266,11 @@ function render() {
   const outstanding=state.waiting.length+state.cooking.length+state.prepared.length+state.baking.length;
   $("received").textContent=state.received;
   $("outstanding").textContent=outstanding;
-  const untilNext=Math.max(0,Math.ceil((1-state.credit)*60/config.demand));
+  const untilNext=Math.max(0,Math.ceil((60-state.credit)/config.demand));
   $("nextArrival").textContent="Next customer in "+untilNext+"s ("+config.demand+" orders/minute).";
   $("preparing").textContent=state.cooking.length?"Cooking: "+state.cooking.length+" pizza(s), next ready in "+Math.min(...state.cooking.map(o=>o.remaining))+"s.":"Cooking: no pizza being prepared.";
   $("baking").textContent=state.baking.length?"Baking: "+state.baking.length+" pizza(s), next ready in "+Math.min(...state.baking.map(o=>o.remaining))+"s.":"Baking: waiting for a prepared pizza.";
-  $("recentEvent").textContent=state.lastServedAt===state.seconds && state.seconds>0?"🍕 Pizza served just now!":(!running?(phase===0?"Press Start restaurant to begin.":"Simulation paused."):outstanding?"Orders in progress: "+outstanding+".":"Waiting for the next customer.");
+  $("recentEvent").textContent=!running?(phase===0?"Press Start restaurant to begin.":"Simulation paused."):state.lastServedAt===state.seconds && state.seconds>0?"🍕 Pizza served just now!":outstanding?"Orders in progress: "+outstanding+".":"Waiting for the next customer.";
   $("demand").textContent=config.demand+"/min";$("served").textContent=state.served.length;
   $("cooks").textContent=config.cooks;$("ovens").textContent=config.ovens;
   $("elapsed").textContent=state.seconds+"s";
@@ -269,7 +283,12 @@ function render() {
 }
 $("whyBottleneck").onclick=()=>$("bottleneckDialog").showModal();
 $("closeBottleneck").onclick=()=>$("bottleneckDialog").close();
-$("bottleneckDialog").onclick=(event)=>{if(event.target===$("bottleneckDialog"))$("bottleneckDialog").close()};
+$("bottleneckDialog").onclick=(event)=>{
+  const dialog=$("bottleneckDialog");
+  if(event.target!==dialog)return;
+  const bounds=dialog.getBoundingClientRect();
+  if(event.clientX<bounds.left || event.clientX>bounds.right || event.clientY<bounds.top || event.clientY>bounds.bottom)dialog.close();
+};
 $("start").onclick=()=>{
   phase=1;
   running=true;
@@ -302,7 +321,7 @@ function improve(kind){
 $("cook").onclick=()=>improve("cooks");
 $("oven").onclick=()=>improve("ovens");
 
-$("pause").onclick=()=>{running=!running;$("pause").textContent=running?"Pause":"Resume"};
+$("pause").onclick=()=>{if(phase===0)return;running=!running;showPhase();render()};
 $("restart").onclick=()=>reset();
 $("switch").onclick=()=>{softwareView=!softwareView;$("switch").textContent=softwareView?"Restaurant view":"Software view";render()};
 setInterval(()=>{if(running){advanceOneSecond();render()}},1000);

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
+    "test:demo": "node --test tests/pizza-demo.test.cjs",
     "test:watch": "jest --watch",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
@@ -46,3 +47,4 @@
     "node": ">=20.9.0"
   }
 }
+
